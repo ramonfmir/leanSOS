@@ -5,12 +5,25 @@ import linear_algebra.eigenspace
 
 -- Check src/linear_algebra/quadratic_form
 
-variables {γ : Type*} [fintype γ]
+variables {γ : Type*} [fintype γ] [nontrivial γ]
 
 namespace matrix 
 
+-- Properties of symmetric matrices. 
+
 def symmetric (M : matrix γ γ ℝ) : Prop :=
 ∀ i j, M i j = M j i
+
+--lemma spectral_decomposition (M : matrix γ γ ℝ) (h : symmetric M)
+--: M = ∑ xr : { z : (γ → ℝ) × ℝ // has_eigenvector M.mul_vec_lin z.2 z.1 }, 
+--  xr.1.2 • (vec_mul_vec (xr.1.1) (xr.1.1))
+
+-- Missing: Set of eigenvectors is finite. Something like:
+-- lemma eigenvalues_of_symmetric (M : matrix γ γ ℝ) (h : symmetric M) :
+-- ∃ f : γ → { a : ℝ | has_eigenvalue M.mul_vec_lin a }, function.bijective f :=
+-- sorry
+
+-- Properties of the dot product.
 
 lemma dot_product_self_nonneg (v : γ → ℝ) : dot_product v v ≥ 0 := 
 begin
@@ -37,6 +50,7 @@ end
 end matrix 
 
 open matrix module.End
+open_locale big_operators
 
 def pos_semidef (M : matrix γ γ ℝ) (h : symmetric M) : Prop :=
 ∀ (v : γ → ℝ), dot_product (mul_vec M v) v ≥ 0
@@ -44,10 +58,10 @@ def pos_semidef (M : matrix γ γ ℝ) (h : symmetric M) : Prop :=
 def nonneg_eigenvalues (M : matrix γ γ ℝ) (h : symmetric M) : Prop :=
 ∀ r x, has_eigenvector (mul_vec_lin M) r x → r ≥ 0
 
-lemma pos_semidef_iff_nonneg_eigenvalues : 
-∀ (M : matrix γ γ ℝ) (h : symmetric M), pos_semidef M h ↔ nonneg_eigenvalues M h :=
+lemma pos_semidef_iff_nonneg_eigenvalues (M : matrix γ γ ℝ) (h : symmetric M) : 
+pos_semidef M h ↔ nonneg_eigenvalues M h :=
 begin
-  intros M h, split,
+  split,
   { rintros hpsd r x ⟨hxnz, hre⟩, by_contra hc, rw [mem_eigenspace_iff] at hre,
     replace hpsd := hpsd x,
     replace hre := congr_arg (λ y, dot_product y x) hre; simp at hre,
@@ -58,6 +72,12 @@ begin
     have hdp := dot_product_self_pos_of_nonzero x hxnz,
     have hc' := mul_neg_of_pos_of_neg hdp hc, rw [mul_comm] at hc',
     exact ((not_le_of_gt hc') hpsd), },
-  { intros hnne, sorry, },
+  { intros hnne v, by_cases (v = 0),
+    { rw [h, dot_product_zero], exact (le_refl 0), },
+    { sorry,
+      -- apply (hnne (dot_product (M.mul_vec v) v) v), split,
+      -- { exact h, },
+      -- { rw mem_eigenspace_iff, simp, }, 
+    }, },
 end 
 
