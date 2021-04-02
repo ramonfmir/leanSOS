@@ -1,4 +1,5 @@
 import system.io
+import data.mv_polynomial.basic
 
 open tactic
 
@@ -8,12 +9,16 @@ unsafe_run_io $ io.cmd {
   cmd := "python3", 
   args := [path, input] }
 
+set_option trace.eqn_compiler.elim_match true
+
 meta def parse_sos : expr → string
-| `(%%e₁ + %%e₂) := "+"
-| e@`(@has_sub.sub %%α %%inst %%e₁ %%e₂) := "-"
-| `(- %%e) := "-"
-| `(%%e₁ * %%e₂) := "*"
-| e@`(@has_pow.pow _ _ %%P %%e₁ %%e₂) := "^"
+| `(@has_le.le %%α %%inst %%e₁ %%e₂) := (parse_sos e₁) ++ "<=" ++ (parse_sos e₂)
+| `(%%e₁ + %%e₂) :=  (parse_sos e₁) ++ "+" ++ (parse_sos e₂)
+| `(@has_sub.sub %%α %%inst %%e₁ %%e₂) := (parse_sos e₁) ++ "-" ++ (parse_sos e₂)
+| `(- %%e) := "-" ++ (parse_sos e)
+| `(%%e₁ * %%e₂) := (parse_sos e₁) ++ "*" ++ (parse_sos e₂)
+| `(@has_pow.pow _ _ %%P %%e₁ %%e₂) := (parse_sos e₁) ++ "^" ++ (parse_sos e₂)
+--| `(mv_polynomial.C %%e) := (parse_sos e)
 | e := to_string e
 
 meta def sos_aux (input : expr) : tactic unit := do 
