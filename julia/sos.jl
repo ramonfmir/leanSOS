@@ -1,5 +1,3 @@
-# Following https://sums-of-squares.github.io/sos/
-
 using Pkg
 
 Pkg.add("SumOfSquares")
@@ -23,12 +21,13 @@ con_ref = @constraint model p >= 0
 optimize!(model)
 
 # Solution status is `OPTIMAL` which means `p` is a sum of squares
-@show termination_status(model)
+#@show termination_status(model)
 
 # Solution `FEASIBLE_POINT`
-@show primal_status(model)
+#@show primal_status(model)
 
 # Show the decomposition 
 # https://github.com/jump-dev/SumOfSquares.jl/blob/master/examples/Getting%20started.jl
-q = gram_matrix(con_ref)
-@show SOSDecomposition(q)
+#q = gram_matrix(con_ref)
+@show gram_matrix(con_ref)
+#@show SOSDecomposition(q)
