@@ -5,11 +5,9 @@
 import system.io
 import data.real.basic
 import data.mv_polynomial.basic
+import .poly
 
-open mv_polynomial 
-
-instance {σ R} [comm_semiring R] [has_le R] : has_le (mv_polynomial σ R) :=
-{ le := λ p q, ∀ v, eval v p ≤ eval v q }
+open mv_polynomial poly
 
 noncomputable def square_polys : list (mv_polynomial ℕ ℝ) → list (mv_polynomial ℕ ℝ) :=
 λ l, list.map (λ q, q * q) l

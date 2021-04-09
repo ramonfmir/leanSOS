@@ -8,8 +8,8 @@ import linear_algebra.eigenspace
 
 -- Check src/linear_algebra/quadratic_form
 
-variables {γ : Type*} [fintype γ] [nontrivial γ]
-variables {R : Type*} [linear_ordered_comm_ring R]
+variables {γ : Type*} [fintype γ] 
+variables {R : Type*}
 
 open_locale big_operators
 
@@ -22,9 +22,11 @@ def symmetric (M : matrix γ γ R) : Prop :=
 
 -- Properties of the dot product.
 
-lemma dot_product_self_nonneg (v : γ → R) : dot_product v v ≥ 0 := 
+variable [linear_ordered_comm_ring R]
+
+lemma dot_product_self_nonneg (v : γ → R) : 0 ≤ dot_product v v := 
 begin
-  apply finset.sum_nonneg, intros x hx, exact mul_self_nonneg (v x),
+  simp [dot_product], apply finset.sum_nonneg, intros x hx, exact mul_self_nonneg (v x),
 end
 
 lemma dot_product_self_eq_zero_iff (v : γ → ℝ) : dot_product v v = 0 ↔ v = 0 :=
@@ -74,14 +76,16 @@ open matrix module.End
 
 -- Equivalent conditions to positive semidefiniteness.
 
+variable [linear_ordered_comm_ring R]
+
+def cholesky_decomposition (M : matrix γ γ R) (h : symmetric M) : Prop :=
+∃ L : matrix γ γ R, M = matrix.mul L.transpose L
+
 def pos_semidef (M : matrix γ γ R) (h : symmetric M) : Prop :=
 ∀ (v : γ → R), dot_product v (mul_vec M v) ≥ 0
 
 def nonneg_eigenvalues (M : matrix γ γ R) (h : symmetric M) : Prop :=
 ∀ r x, has_eigenvector (mul_vec_lin M) r x → r ≥ 0
-
-def cholesky_decomposition (M : matrix γ γ R) (h : symmetric M) : Prop :=
-∃ L : matrix γ γ R, M = matrix.mul L.transpose L
 
 theorem pos_semidef_of_cholesky_decomposition (M : matrix γ γ R) (h : symmetric M) 
 : cholesky_decomposition M h → pos_semidef M h :=
