@@ -3,10 +3,12 @@
 -/
 
 import data.real.basic
-import .sos .psd
+import data.mv_polynomial.basic
+import .sos
 
+open mv_polynomial
 
 example : (C (0 : ℝ)) ≤ (X 5) * (X 1):= begin 
-  --sos, 
+  sos, 
   sorry,
 end 
