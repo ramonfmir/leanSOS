@@ -37,13 +37,16 @@ begin
   exact matrix.dot_product_self_nonneg _,
 end 
 
+noncomputable def matrix.to_poly (Q : matrix γ γ R) : matrix γ γ (mv_polynomial ℕ R) :=
+λ i j, C (Q i j)
+
 -- 3. thus cholesky of polynomial means poly is nonneg. 
 lemma nonneg_of_cholesky 
   (p : mv_polynomial ℕ R) 
   (ms : γ → mv_polynomial ℕ R)
   (Q : matrix γ γ R)
   (hQ : symmetric Q)
-  (hp : p = dot_product ms (mul_vec (λ i j, C (Q i j)) ms))
+  (hp : p = dot_product ms (mul_vec (matrix.to_poly Q) ms))
   (hcholesky : cholesky_decomposition Q hQ)
 : 0 ≤ p := 
 begin 

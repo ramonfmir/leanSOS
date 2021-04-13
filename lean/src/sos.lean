@@ -24,6 +24,7 @@ begin
 end 
 
 open tactic 
+open lean.parser interactive interactive.types (texpr)
 
 meta def execute (input : string) : tactic string :=
 let path := "/Users/ramon/Documents/experiments/leanSOS/lean/scripts/client.py" in
@@ -49,10 +50,67 @@ meta def parse_sos : expr → string
 | `(mv_polynomial.X %%e) := "x[" ++ (parse_num (expr.to_nat e)) ++ "]"
 | e := ""
 
+noncomputable def p : mv_polynomial ℕ ℝ := (X 1) * (X 1)
+
+noncomputable def ms : fin 1 → mv_polynomial ℕ ℝ := λ _, X 1
+
+def Q : fin 1 → fin 1 → ℝ := λ _ _, 1
+
+#check simp_lemmas.mk
+#check tactic.simplify
+
+-- Quick and dirty tactic to prove that Q is symmetric.
+meta def prove_symmetric : tactic unit := do 
+  `(matrix.symmetric %%Q) ← target,
+  [i, j] ← tactic.intro_lst [`i, `j],
+  (_, _, _) ← simplify simp_lemmas.mk [] Q {fail_if_unchanged := ff},
+  try tactic.reflexivity
+
+lemma Qsymmetric : matrix.symmetric Q := 
+begin
+  prove_symmetric,
+end
+
+-- Quick and dirty tactic to prove that p = xT * Q * x.
+meta def prove_poly_eq : tactic unit := do 
+  `(%%p = matrix.dot_product %%ms (matrix.mul_vec (matrix.to_poly %%Q) %%ms')) ← target,
+  `[simp [matrix.dot_product, matrix.mul_vec, matrix.to_poly, ms, Q, p]]
+
+lemma Qmsp : p = matrix.dot_product ms (matrix.mul_vec (matrix.to_poly Q) ms) :=
+begin 
+  prove_poly_eq,
+end
+
+setup_tactic_parser
+ 
+meta def prove_cholesky (pL : parse texpr) : tactic unit := 
+focus1 $ do
+  `(cholesky_decomposition %%Q %%hQ) ← target,
+  tactic.use [pL],
+  `[simp [Q, matrix.mul, matrix.dot_product]]
+
+lemma Qcholesky : cholesky_decomposition Q Qsymmetric :=
+begin 
+  prove_cholesky ``(λ _ _, 1),
+end 
+
 meta def sos_aux (input : expr) : tactic unit := do 
-  m ← execute (parse_sos input),
-  tactic.trace m
+  --m ← execute (parse_sos input),
+  --tactic.trace m
+  --`(0 ≤ %%p) ← target,
+  tactic.exact 
+    `(nonneg_of_cholesky 
+      p 
+      ms 
+      Q 
+      (by prove_symmetric) 
+      (by prove_poly_eq) 
+      (by prove_cholesky ``(λ _ _, 1)))
 
 meta def sos : tactic unit := do 
   t ← target,
   sos_aux t
+
+example : 0 ≤ p := begin
+  sos,
+end 
