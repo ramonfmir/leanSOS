@@ -56,30 +56,32 @@ noncomputable def ms : fin 1 → mv_polynomial ℕ ℝ := λ _, X 1
 
 def Q : fin 1 → fin 1 → ℝ := λ _ _, 1
 
-#check simp_lemmas.mk
-#check tactic.simplify
-
 -- Quick and dirty tactic to prove that Q is symmetric.
-meta def prove_symmetric : tactic unit := do 
+meta def prove_symmetric : tactic unit := 
+focus1 $ do 
   `(matrix.symmetric %%Q) ← target,
   [i, j] ← tactic.intro_lst [`i, `j],
   (_, _, _) ← simplify simp_lemmas.mk [] Q {fail_if_unchanged := ff},
   try tactic.reflexivity
 
 lemma Qsymmetric : matrix.symmetric Q := 
-begin
-  prove_symmetric,
-end
+by prove_symmetric
+
+lemma Qsymmetric2 : matrix.symmetric (λ _ _, 3 : matrix (fin 1) (fin 1) ℝ) :=
+by prove_symmetric 
 
 -- Quick and dirty tactic to prove that p = xT * Q * x.
-meta def prove_poly_eq : tactic unit := do 
+meta def prove_poly_eq : tactic unit := 
+focus1 $ do 
   `(%%p = matrix.dot_product %%ms (matrix.mul_vec (matrix.to_poly %%Q) %%ms')) ← target,
-  `[simp [matrix.dot_product, matrix.mul_vec, matrix.to_poly, ms, Q, p]]
+  let l := [``matrix.dot_product, ``matrix.mul_vec, ``matrix.to_poly],
+  lemmas ← l.mfoldl simp_lemmas.add_simp simp_lemmas.mk,
+  (new_t, pr, _) ← target >>= simplify lemmas [``ms, ``Q, ``p],
+  replace_target new_t pr,
+  `[simp] 
 
 lemma Qmsp : p = matrix.dot_product ms (matrix.mul_vec (matrix.to_poly Q) ms) :=
-begin 
-  prove_poly_eq,
-end
+by prove_poly_eq
 
 setup_tactic_parser
  
@@ -87,30 +89,37 @@ meta def prove_cholesky (pL : parse texpr) : tactic unit :=
 focus1 $ do
   `(cholesky_decomposition %%Q %%hQ) ← target,
   tactic.use [pL],
-  `[simp [Q, matrix.mul, matrix.dot_product]]
+  let l := [``matrix.mul, ``matrix.dot_product],
+  lemmas ← l.mfoldl simp_lemmas.add_simp simp_lemmas.mk,
+  (new_t, pr, _) ← target >>= simplify lemmas [``Q],
+  replace_target new_t pr,
+  `[simp]
 
 lemma Qcholesky : cholesky_decomposition Q Qsymmetric :=
-begin 
-  prove_cholesky ``(λ _ _, 1),
-end 
+by prove_cholesky ``(λ _ _, 1)
 
 meta def sos_aux (input : expr) : tactic unit := do 
   --m ← execute (parse_sos input),
-  --tactic.trace m
-  --`(0 ≤ %%p) ← target,
-  tactic.exact 
-    `(nonneg_of_cholesky 
-      p 
-      ms 
-      Q 
-      (by prove_symmetric) 
-      (by prove_poly_eq) 
-      (by prove_cholesky ``(λ _ _, 1)))
+  tactic.trace input,
+  γ ← to_expr ``(fin 1),
+  γi ← to_expr ``(fin.fintype 1),
+  R ← to_expr ``(ℝ),
+  Ri ← to_expr ``(real.linear_ordered_comm_ring),
+  `(0 ≤ %%p) ← target,
+  ms ← to_expr ``(λ _, X 1 : fin 1 → mv_polynomial ℕ ℝ),
+  Q ← to_expr ``(λ _ _, 1 : matrix (fin 1) (fin 1) ℝ),
+  x ← mk_mapp ``nonneg_of_cholesky [γ, γi, R, Ri, p, ms, Q],
+  interactive.concat_tags $ tactic.apply x,
+  prove_poly_eq, swap,
+  prove_symmetric,
+  prove_cholesky ``(λ _ _, 1)
 
 meta def sos : tactic unit := do 
   t ← target,
   sos_aux t
 
-example : 0 ≤ p := begin
+set_option trace.app_builder true
+
+example : 0 ≤ (p : mv_polynomial ℕ ℝ) := begin
   sos,
 end 
