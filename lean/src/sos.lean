@@ -39,6 +39,8 @@ meta def parse_num : option nat → string
 | (some n) := to_string n
 | _ := ""
 
+-- parsing
+
 meta def parse_sos : expr → string
 | `(@has_le.le %%α %%inst %%e₁ %%e₂) := (parse_sos e₁) ++ "<=" ++ (parse_sos e₂)
 | `(%%e₁ + %%e₂) :=  "(" ++ (parse_sos e₁) ++ "+" ++ (parse_sos e₂) ++ ")"
@@ -49,6 +51,16 @@ meta def parse_sos : expr → string
 | `(mv_polynomial.C %%e) := (parse_num (expr.to_nat e))
 | `(mv_polynomial.X %%e) := "x[" ++ (parse_num (expr.to_nat e)) ++ "]"
 | e := ""
+
+meta def parse_dimension : char → ℕ 
+| '1' := 1
+| '2' := 2
+| '3' := 3
+| '4' := 4
+| _ := 0 -- and so on 
+
+meta def parse_matrix_string (n : ℕ) : string → matrix (fin n) (fin n) ℝ :=
+sorry
 
 noncomputable def p : mv_polynomial ℕ ℝ := (X 1) * (X 1)
 
@@ -99,8 +111,8 @@ lemma Qcholesky : cholesky_decomposition Q Qsymmetric :=
 by prove_cholesky ``(λ _ _, 1)
 
 meta def sos_aux (input : expr) : tactic unit := do 
-  --m ← execute (parse_sos input),
-  tactic.trace input,
+  m ← execute (parse_sos input),
+  tactic.trace m,
   γ ← to_expr ``(fin 1),
   γi ← to_expr ``(fin.fintype 1),
   R ← to_expr ``(ℝ),
