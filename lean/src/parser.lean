@@ -32,24 +32,29 @@ def list_to_matrix (n : ℕ) (l : list (list ℚ))
 : matrix (fin n) (fin n) ℚ := 
 λ i j, (l.nth_le i.1 (hl.symm ▸ i.2)).nth_le j.1 ((hl' i).symm ▸ j.2)
 
+meta def list_from_string_aux (st : string) : lean.parser expr := do
+  (t, s) ← with_input types.texpr st,
+  e <- to_expr ``(%%t : list ℚ),
+  n <- eval_expr' (list ℚ) e,
+  return (reflect n)
+
+meta def list_of_lists_from_string_aux (st : string) : lean.parser expr := do
+  (t, s) ← with_input types.texpr st,
+  e <- to_expr ``(%%t : list (list ℚ)),
+  n <- eval_expr' (list (list ℚ)) e,
+  return (reflect n)
+
+meta def list_from_string (st : string) : tactic unit := do
+  e ← run (list_from_string_aux st),
+  tactic.exact e
+
+meta def list_of_lists_from_string (st : string) : tactic unit := do
+  e ← run (list_of_lists_from_string_aux st),
+  tactic.exact e
+ 
 def test_matrix : matrix (fin 2) (fin 2) ℚ :=
 list_to_matrix 
   2 
-  [[0.1, 0.2], [0.3, 0.4]]
+  (by list_of_lists_from_string "[[0.1, 0.2], [0.3, 0.4]]")
   (by refl)
   (λ i, by fin_cases i; refl)
-
-
-meta def list_from_string (st : string) : lean.parser expr := do
-   (t, s) ← with_input types.texpr st,
-   e <- to_expr t,
-   n <- eval_expr' (list ℚ) e,
-   ne ← to_expr ``(%%n),
-   return ne
-
-meta def tact (st : string) : tactic unit := do
-  e ← run (list_from_string st),
-  tactic.exact e
- 
-def a : list ℚ := by tact "[0.1, 0.2]"
-
