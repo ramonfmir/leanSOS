@@ -52,16 +52,6 @@ meta def parse_sos : expr → string
 | `(mv_polynomial.X %%e) := "x[" ++ (parse_num (expr.to_nat e)) ++ "]"
 | e := ""
 
-meta def parse_dimension : char → ℕ 
-| '1' := 1
-| '2' := 2
-| '3' := 3
-| '4' := 4
-| _ := 0 -- and so on 
-
-meta def parse_matrix_string (n : ℕ) : string → matrix (fin n) (fin n) ℝ :=
-sorry
-
 noncomputable def p : mv_polynomial ℕ ℝ := (X 1) * (X 1)
 
 noncomputable def ms : fin 1 → mv_polynomial ℕ ℝ := λ _, X 1
