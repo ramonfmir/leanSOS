@@ -1,5 +1,0 @@
-(strategy.mk
-(Claim.mk {foo.a} (λ n, n = foo.a))
-[(λ n, n=foo.b),
-(λ n, n=foo.c),
-(λ n, n=foo.d)])

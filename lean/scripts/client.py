@@ -45,7 +45,7 @@ if __name__ == "__main__":
         #gram = run_sos(expr)
         #print(gram)
         print("1")
-        print("[x1]")
+        print("[[1]]") # this means [x1]. [[1,2], [3]] means [x1*x2, x3]
         print("[[1]]")
         print("[[1]]")
 
