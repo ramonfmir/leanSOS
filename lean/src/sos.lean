@@ -71,11 +71,9 @@ meta def sos_aux (input : expr) : tactic unit := do
   m ← execute (parse_sos input),
   let f := "/Users/ramon/Documents/experiments/leanSOS/lean/scripts/temp.txt",
   buf ← unsafe_run_io (io.fs.read_file f),
-  tactic.trace buf.to_string,
   match (buf.to_string.split_on '\n') with 
     | sdim::sQ::sms::sL::_ := do {
         -- Parse strings.
-        tactic.trace "Hello",
         let dim : ℕ := parse_dim sdim,
         lms ← nat_list_of_lists_from_string sms,
         lQ ← rat_list_of_lists_from_string sQ,
@@ -106,6 +104,10 @@ meta def sos : tactic unit := do
 set_option trace.app_builder true
 set_option timeout 100000
 
-example : (C 0) ≤ ((X 1) * (X 1) : mv_polynomial ℕ ℚ) := begin
-  sos,
-end 
+-- 0 ≤ x^2
+example : (C 0) ≤ ((X 1) * (X 1) : mv_polynomial ℕ ℚ) := 
+by sos
+
+-- 0 ≤ x^2 + 2xy + y^2
+example : (C 0) ≤ ((X 1) * (X 1) + (C 2) * (X 1) * (X 2) + (X 2) * (X 2) : mv_polynomial ℕ ℚ) :=
+by sos
