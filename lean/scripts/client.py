@@ -15,6 +15,32 @@ def parse_expr(expr):
     except Exception as e:
         print("Invalid")
 
+# Transforms 'a, b; c, d' into '[[a, b], [c, d]].
+def format_matrix(M):
+    rows = M.split(';')
+    return "[[" + "],[".join(rows) + "]]"
+
+# Transforms 'x₁' into "(X 1)"
+SUB = str.maketrans("₀₁₂₃₄₅₆₇₈₉", "0123456789")
+SUP = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹", "0123456789")
+def format_monomial(m):
+    if (len(m) == 2):
+        return "(X " + m[1].translate(SUB) + ")"
+    elif (len(m) == 3):
+        s = format_monomial(m[:2])
+        e = int(m[2].translate(SUP))
+        return " * ".join([s] * e)
+    else: 
+        if (m[2] == "x"):
+            return format_monomial(m[:2]) + " * " + format_monomial(m[2:])
+        else:
+            return format_monomial(m[:3]) + " * " + format_monomial(m[3:])
+
+# Transforms 'x₁, x₂' into '[(X 1), (X 2)]'
+def format_monomials(ms):
+    ms = ms.split(", ")
+    return "[" + ", ".join(map(format_monomial, ms)) + "]"
+
 def run_sos(expr):
     jpath = "/Applications/Julia-1.5.app/Contents/Resources/julia/bin/julia"
     jl = Julia(runtime=jpath)
@@ -29,16 +55,17 @@ def run_sos(expr):
     jl.eval('con_ref = @constraint model p <= q')
     jl.eval('optimize!(model)')
     result = str(jl.eval('return(gram_matrix(con_ref))'))
-    evo, avo = parse("{}GramMatrix{}", result)
 
-    return avo
+    _, raw = parse("{}GramMatrix{}", result)
+    _, Q, _, ms, _ = parse("{}[{}]{}[{}]{}", raw)
+    Q = format_matrix(Q)
+    ms = format_monomials(ms)
+
+    return (Q, ms)
 
 if __name__ == "__main__":
-    matrix = run_sos(parse_expr("0 <= x[1]*x[1]"))
-
-    f = open("temp.txt", "w")
-    f.write(matrix)
-    f.close()
+    Q, ms = run_sos(parse_expr("0 <= 2*x[1]^4 + 2*x[1]^3*x[2] - x[1]^2*x[2]^2 + 5*x[2]^4"))
+    print((Q,ms))
 
     if (len(sys.argv) > 1):
         #expr = parse_expr(sys.argv[1])
