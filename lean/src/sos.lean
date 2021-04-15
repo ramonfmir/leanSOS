@@ -68,8 +68,12 @@ focus1 $ do
 
 meta def sos_aux (input : expr) : tactic unit := do 
   `(0 ≤ %%p) ← target,
-  m ← execute (parse_sos input),
-  match (m.split_on '\n') with 
+  --m ← execute (parse_sos input),
+  --tactic.trace m,
+  let f := "/Users/ramon/Documents/experiments/leanSOS/lean/scripts/temp.txt",
+  buf ← unsafe_run_io (io.fs.read_file f),
+  tactic.trace buf.to_string,
+  match (buf.to_string.split_on '\n') with 
     | sdim::sms::sQ::sL::_ := do {
         -- Parse strings.
         let dim : ℕ := parse_dim sdim,

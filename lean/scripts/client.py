@@ -34,11 +34,11 @@ def run_sos(expr):
     return avo
 
 if __name__ == "__main__":
-    #sys.stdout = open(os.devnull, 'w')
-    #matrix = run_sos(parse_expr("0 <= x[1]*x[1]"))
+    matrix = run_sos(parse_expr("0 <= x[1]*x[1]"))
 
-    #sys.stdout = sys.__stdout__
-    #print(matrix)
+    f = open("temp.txt", "w")
+    f.write(matrix)
+    f.close()
 
     if (len(sys.argv) > 1):
         #expr = parse_expr(sys.argv[1])
