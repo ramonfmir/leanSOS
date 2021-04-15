@@ -28,6 +28,12 @@ optimize!(model)
 
 # Show the decomposition 
 # https://github.com/jump-dev/SumOfSquares.jl/blob/master/examples/Getting%20started.jl
-#q = gram_matrix(con_ref)
-@show gram_matrix(con_ref)
-#@show SOSDecomposition(q)
+q = gram_matrix(con_ref)
+d = length(q.basis)
+Q = q.Q
+ms = q.basis
+nM, cM, L = MultivariateMoments.lowrankchol(Matrix(getmat(q)), SVDChol(), 0.0)
+
+@show (d, Q)
+@show ms
+@show L

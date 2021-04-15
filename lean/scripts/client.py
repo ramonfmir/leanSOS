@@ -20,26 +20,26 @@ def format_matrix(M):
     rows = M.split(';')
     return "[[" + "],[".join(rows) + "]]"
 
-# Transforms 'x₁' into "(X 1)"
+# Transforms 'x₁' into "[[1]]"
 SUB = str.maketrans("₀₁₂₃₄₅₆₇₈₉", "0123456789")
 SUP = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹", "0123456789")
 def format_monomial(m):
     if (len(m) == 2):
-        return "(X " + m[1].translate(SUB) + ")"
+        return m[1].translate(SUB)
     elif (len(m) == 3):
         s = format_monomial(m[:2])
         e = int(m[2].translate(SUP))
-        return " * ".join([s] * e)
+        return ", ".join([s] * e)
     else: 
         if (m[2] == "x"):
-            return format_monomial(m[:2]) + " * " + format_monomial(m[2:])
+            return format_monomial(m[:2]) + ", " + format_monomial(m[2:])
         else:
-            return format_monomial(m[:3]) + " * " + format_monomial(m[3:])
+            return format_monomial(m[:3]) + ", " + format_monomial(m[3:])
 
 # Transforms 'x₁, x₂' into '[(X 1), (X 2)]'
 def format_monomials(ms):
     ms = ms.split(", ")
-    return "[" + ", ".join(map(format_monomial, ms)) + "]"
+    return "[[" + "], [".join(map(format_monomial, ms)) + "]]"
 
 def run_sos(expr):
     jpath = "/Applications/Julia-1.5.app/Contents/Resources/julia/bin/julia"
@@ -54,27 +54,31 @@ def run_sos(expr):
     jl.eval('q = ' + expr[1])
     jl.eval('con_ref = @constraint model p <= q')
     jl.eval('optimize!(model)')
-    result = str(jl.eval('return(gram_matrix(con_ref))'))
+    jl.eval('G = gram_matrix(con_ref)')
+    jl.eval('d = length(G.basis)')
+    jl.eval('Q = G.Q')
+    jl.eval('ms = G.basis')
+    jl.eval('nM, cM, L = MultivariateMoments.lowrankchol(Matrix(getmat(G)), SVDChol(), 0.0)')
 
-    _, raw = parse("{}GramMatrix{}", result)
-    _, Q, _, ms, _ = parse("{}[{}]{}[{}]{}", raw)
-    Q = format_matrix(Q)
-    ms = format_monomials(ms)
+    d_raw, Q_raw, raw_ms, raw_L = jl.eval('return((d, Q, ms, L))')
 
-    return (Q, ms)
+    d = str(d_raw)
+    Q = str(Q_raw)
+    ms = format_monomials(parse("{}[{}]{}", str(raw_ms))[1])
+    L = str(raw_L).replace('\n', ',')
+
+    return d, Q, ms, L
 
 if __name__ == "__main__":
-    Q, ms = run_sos(parse_expr("0 <= 2*x[1]^4 + 2*x[1]^3*x[2] - x[1]^2*x[2]^2 + 5*x[2]^4"))
-    print((Q,ms))
-
     if (len(sys.argv) > 1):
-        #expr = parse_expr(sys.argv[1])
-        #gram = run_sos(expr)
-        #print(gram)
-        print("1")
-        print("[[1]]") # this means [x1]. [[1,2], [3]] means [x1*x2, x3]
-        print("[[1]]")
-        print("[[1]]")
+        expr = parse_expr(sys.argv[1])
+        d, Q, ms, L = run_sos(expr)
 
+        f = open("/Users/ramon/Documents/experiments/leanSOS/lean/scripts/temp.txt", "w")
+        f.write(d)
+        f.write(Q)
+        f.write(ms)
+        f.write(L)
+        f.close()
     else:
         print("Error")
