@@ -67,15 +67,15 @@ focus1 $ do
   `[simp [list_to_vector, list_to_monomials, list_to_matrix, list_to_monomial]]
 
 meta def sos_aux (input : expr) : tactic unit := do 
-  `(0 ≤ %%p) ← target,
-  --m ← execute (parse_sos input),
-  --tactic.trace m,
+  `(%%q ≤ %%p) ← target,
+  m ← execute (parse_sos input),
   let f := "/Users/ramon/Documents/experiments/leanSOS/lean/scripts/temp.txt",
   buf ← unsafe_run_io (io.fs.read_file f),
   tactic.trace buf.to_string,
   match (buf.to_string.split_on '\n') with 
-    | sdim::sms::sQ::sL::_ := do {
+    | sdim::sQ::sms::sL::_ := do {
         -- Parse strings.
+        tactic.trace "Hello",
         let dim : ℕ := parse_dim sdim,
         lms ← nat_list_of_lists_from_string sms,
         lQ ← rat_list_of_lists_from_string sQ,
@@ -95,18 +95,17 @@ meta def sos_aux (input : expr) : tactic unit := do
         -- Prove the three subgoals.
         prove_poly_eq, swap,
         prove_symmetric,
-        prove_cholesky ``(%%L) 
-        }
+        prove_cholesky ``(%%L) }
     | _ := tactic.trace "Error"
   end
-  
 
 meta def sos : tactic unit := do 
   t ← target,
   sos_aux t
 
 set_option trace.app_builder true
+set_option timeout 100000
 
-example : 0 ≤ ((X 1) * (X 1) : mv_polynomial ℕ ℚ) := begin
+example : (C 0) ≤ ((X 1) * (X 1) : mv_polynomial ℕ ℚ) := begin
   sos,
 end 

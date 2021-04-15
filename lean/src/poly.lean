@@ -48,13 +48,13 @@ lemma nonneg_of_cholesky
   (hQ : symmetric Q)
   (hp : p = dot_product ms (mul_vec (matrix.to_poly Q) ms))
   (hcholesky : cholesky_decomposition Q hQ)
-: 0 ≤ p := 
+: C 0 ≤ p := 
 begin 
   intros e, rw [hp, eval_dot_product _ _ e],
   have : (λ i, (eval e) (mul_vec (λ i j, C (Q i j)) ms i)) = 
          λ i, mul_vec Q (λ i, eval e (ms i)) i,
   { funext i, rw eval_mul_vec ms _ e i, congr, ext l m, exact eval_C _, },
-  rw this, simp [eval_C 0],
+  simp [eval_C 0, matrix.to_poly], rw this, 
   obtain ⟨L, hL⟩ := hcholesky,
   rw hL,
   rw dot_product_transpose,
