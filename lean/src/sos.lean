@@ -68,27 +68,30 @@ focus1 $ do
 
 meta def sos_aux (input : expr) : tactic unit := do 
   `(%%q ≤ %%p) ← target,
-  m ← execute (parse_sos input),
+  --m ← execute (parse_sos input),
   let f := "/Users/ramon/Documents/experiments/leanSOS/lean/scripts/temp.txt",
   buf ← unsafe_run_io (io.fs.read_file f),
   match (buf.to_string.split_on '\n') with 
-    | sdim::sQ::sms::sL::_ := do {
+    | sQdim::sQ::sms::sLdim::sL::_ := do {
         -- Parse strings.
-        let dim : ℕ := parse_dim sdim,
+        let n : ℕ := parse_dim sQdim,
         lms ← nat_list_of_lists_from_string sms,
         lQ ← rat_list_of_lists_from_string sQ,
+        let m : ℕ := parse_dim sLdim,
         lL ← rat_list_of_lists_from_string sL,
         -- Some defaults.
-        γ ← to_expr ``(fin %%dim),
-        γi ← to_expr ``(fin.fintype %%dim),
+        γ ← to_expr ``(fin %%n),
+        γi ← to_expr ``(fin.fintype %%n),
+        μ ← to_expr ``(fin %%m),
+        μi ← to_expr ``(fin.fintype %%n),
         R ← to_expr ``(ℚ),
         Ri ← to_expr ``(rat.linear_ordered_comm_ring),
         -- Monomials and main matrix.
-        ms ← monomials_from_list dim lms,
-        Q ← matrix_from_list dim lQ,
-        L ← matrix_from_list dim lL,
+        ms ← monomials_from_list n lms,
+        Q ← matrix_from_list n n lQ,
+        L ← matrix_from_list n m lL,
         -- Apply the main theorem. 
-        res ← mk_mapp ``nonneg_of_cholesky [γ, γi, R, Ri, p, ms, Q],
+        res ← mk_mapp ``nonneg_of_cholesky [γ, γi, μ, μi, R, Ri, p, ms, Q],
         interactive.concat_tags $ tactic.apply res,
         -- Prove the three subgoals.
         prove_poly_eq, swap,
@@ -109,5 +112,5 @@ example : (C 0) ≤ ((X 1) * (X 1) : mv_polynomial ℕ ℚ) :=
 by sos
 
 -- 0 ≤ x^2 + 2xy + y^2
-example : (C 0) ≤ ((X 1) * (X 1) + (C 2) * (X 1) * (X 2) + (X 2) * (X 2) : mv_polynomial ℕ ℚ) :=
-by sos
+--example : (C 0) ≤ ((X 1) * (X 1) + (C 2) * (X 1) * (X 2) + (X 2) * (X 2) : mv_polynomial ℕ ℚ) :=
+--by sos

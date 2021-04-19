@@ -9,6 +9,7 @@ import linear_algebra.eigenspace
 -- Check src/linear_algebra/quadratic_form
 
 variables {γ : Type*} [fintype γ] 
+variables {μ : Type*} [fintype μ]
 variables {R : Type*}
 
 open_locale big_operators
@@ -46,7 +47,7 @@ begin
   exact (lt_of_le_of_ne h1 h2),
 end 
 
-lemma dot_product_transpose (v : γ → R) (L : matrix γ γ R)
+lemma dot_product_transpose (v : γ → R) (L : matrix μ γ R)
 : dot_product v ((L.transpose.mul L).mul_vec v) = dot_product (L.mul_vec v) (L.mul_vec v) :=
 begin
   rw ←mul_vec_mul_vec, dsimp [mul_vec, dot_product], 
@@ -79,7 +80,7 @@ open matrix module.End
 variable [linear_ordered_comm_ring R]
 
 def cholesky_decomposition (M : matrix γ γ R) (h : symmetric M) : Prop :=
-∃ L : matrix γ γ R, M = matrix.mul L.transpose L
+∃ L : matrix μ γ R, M = matrix.mul L.transpose L
 
 def pos_semidef (M : matrix γ γ R) (h : symmetric M) : Prop :=
 ∀ (v : γ → R), dot_product v (mul_vec M v) ≥ 0
@@ -88,7 +89,7 @@ def nonneg_eigenvalues (M : matrix γ γ R) (h : symmetric M) : Prop :=
 ∀ r x, has_eigenvector (mul_vec_lin M) r x → r ≥ 0
 
 theorem pos_semidef_of_cholesky_decomposition (M : matrix γ γ R) (h : symmetric M) 
-: cholesky_decomposition M h → pos_semidef M h :=
+: @cholesky_decomposition γ _ μ _ R _ M h → pos_semidef M h :=
 begin 
   rintros ⟨L, hL⟩ v, rw hL, rw [dot_product_transpose],
   exact dot_product_self_nonneg _,

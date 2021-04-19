@@ -48,9 +48,9 @@ l.map list_to_monomial
 : fin n → α := 
 λ i, l.nth_le i.1 (hl.symm ▸ i.2)
 
-@[reducible] def list_to_matrix {α} (n : ℕ) (l : list (list α)) 
-(hl : l.length = n) (hl' : ∀ i : fin n, (l.nth_le i.1 (hl.symm ▸ i.2)).length = n)
-: matrix (fin n) (fin n) α := 
+@[reducible] def list_to_matrix {α} (n m : ℕ) (l : list (list α)) 
+(hl : l.length = n) (hl' : ∀ i : fin n, (l.nth_le i.1 (hl.symm ▸ i.2)).length = m)
+: matrix (fin n) (fin m) α := 
 λ i j, (l.nth_le i.1 (hl.symm ▸ i.2)).nth_le j.1 ((hl' i).symm ▸ j.2)
 
 -- Transforming lists (tactics).
@@ -59,10 +59,10 @@ meta def monomials_from_list (d : ℕ) (l : expr) : tactic expr := do
   e ← to_expr ``(list_to_vector %%d (list_to_monomials %%l) (by refl)),
   return e
 
-meta def matrix_from_list (d : ℕ) (l : expr) : tactic expr := do 
-  e ← to_expr ``(list_to_matrix %%d %%l (by refl) (λ i, by fin_cases i; refl)),
+meta def matrix_from_list (n m : ℕ) (l : expr) : tactic expr := do 
+  e ← to_expr ``(list_to_matrix %%n %%m %%l (by refl) (λ i, by fin_cases i; refl)),
   return e
 
 def test_matrix : matrix (fin 2) (fin 2) ℚ :=
-by do { e ← (matrix_from_list 2 `([[0.1, 0.2], [0.3, 0.4]] : list (list ℚ)) ), tactic.exact e }
+by do { e ← (matrix_from_list 2 2 `([[0.1, 0.2], [0.3, 0.4]] : list (list ℚ)) ), tactic.exact e }
 

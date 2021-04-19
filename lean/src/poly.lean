@@ -8,6 +8,7 @@ import .psd
 open mv_polynomial matrix
 
 variables {γ : Type*} [fintype γ]
+variables {μ : Type*} [fintype μ]
 variables {R : Type*} [linear_ordered_comm_ring R]
 
 namespace poly
@@ -47,7 +48,7 @@ lemma nonneg_of_cholesky
   (Q : matrix γ γ R)
   (hQ : symmetric Q)
   (hp : p = dot_product ms (mul_vec (matrix.to_poly Q) ms))
-  (hcholesky : cholesky_decomposition Q hQ)
+  (hcholesky : @cholesky_decomposition γ _ μ _ R _ Q hQ)
 : C 0 ≤ p := 
 begin 
   intros e, rw [hp, eval_dot_product _ _ e],
