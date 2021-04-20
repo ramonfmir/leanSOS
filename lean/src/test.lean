@@ -2,6 +2,8 @@
   Testing out the tactic.
 -/
 
+import tactic.ring2
+import tactic.ring
 import data.real.basic
 import data.mv_polynomial.basic
 import .poly .psd .sos
@@ -33,6 +35,16 @@ example : (C (0 : ℝ)) ≤ (X 1) * (X 1):= begin
 end 
 
 -- Trying to help ring with some extra lemmas.#check
+
+example : (C 1) + (C 1) = ((C 2) : mv_polynomial ℕ ℝ) := 
+begin 
+  simp; ring,
+end
+
+example : (X 1) + (X 1) = ((C 2) * (X 1) : mv_polynomial ℕ ℝ) := 
+begin 
+  simp; ring,
+end
 
 example : finset.univ.sum (λ x : fin 2, (C 1 : mv_polynomial ℕ ℚ)) = C 2 :=
 begin 
