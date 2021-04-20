@@ -3,6 +3,7 @@
 -/
 
 import system.io
+import tactic.ring
 import data.real.basic
 import data.mv_polynomial.basic
 import .parser .poly
@@ -38,11 +39,13 @@ meta def parse_sos : expr → string
 
 -- Quick and dirty tactic to prove that Q is symmetric.
 meta def prove_symmetric : tactic unit := 
-focus1 $ do 
+do 
   `(matrix.symmetric %%Q) ← target,
   [i, j] ← tactic.intro_lst [`i, `j],
   (_, _, _) ← simplify simp_lemmas.mk [] Q {fail_if_unchanged := ff},
-  `[simp [list_to_vector, list_to_monomials, list_to_matrix, list_to_monomial]]
+  `[fin_cases i; fin_cases j; 
+    simp [list_to_vector, list_to_monomials, list_to_matrix, list_to_monomial];
+    try_for 10000 { ring }]
 
 -- Quick and dirty tactic to prove that p = xT * Q * x.
 meta def prove_poly_eq : tactic unit := 
@@ -52,19 +55,23 @@ focus1 $ do
   lemmas ← l.mfoldl simp_lemmas.add_simp simp_lemmas.mk,
   (new_t, pr, _) ← target >>= simplify lemmas [``ms, ``Q, ``p],
   replace_target new_t pr,
-  `[simp [list_to_vector, list_to_monomials, list_to_matrix, list_to_monomial]] 
+  `[simp [list_to_vector, list_to_monomials, list_to_matrix, list_to_monomial]] <|>
+  `[try_for 10000 { ring }]
 
 setup_tactic_parser
  
 meta def prove_cholesky (pL : parse texpr) : tactic unit := 
-focus1 $ do
+do
   `(cholesky_decomposition %%Q %%hQ) ← target,
+  tactic.trace Q,
   tactic.use [pL],
   let l := [``matrix.mul, ``matrix.dot_product],
   lemmas ← l.mfoldl simp_lemmas.add_simp simp_lemmas.mk,
   (new_t, pr, _) ← target >>= simplify lemmas [``Q],
   replace_target new_t pr,
-  `[simp [list_to_vector, list_to_monomials, list_to_matrix, list_to_monomial]]
+  `[simp [list_to_vector, list_to_monomials, list_to_matrix, list_to_monomial]; 
+    ext i j; fin_cases i; fin_cases j;
+    try_for 10000 { ring }]
 
 meta def sos_aux (input : expr) : tactic unit := do 
   `(%%q ≤ %%p) ← target,
@@ -83,20 +90,21 @@ meta def sos_aux (input : expr) : tactic unit := do
         γ ← to_expr ``(fin %%n),
         γi ← to_expr ``(fin.fintype %%n),
         μ ← to_expr ``(fin %%m),
-        μi ← to_expr ``(fin.fintype %%n),
+        μi ← to_expr ``(fin.fintype %%m),
         R ← to_expr ``(ℚ),
         Ri ← to_expr ``(rat.linear_ordered_comm_ring),
         -- Monomials and main matrix.
         ms ← monomials_from_list n lms,
         Q ← matrix_from_list n n lQ,
-        L ← matrix_from_list n m lL,
+        L ← matrix_from_list m n lL,
         -- Apply the main theorem. 
         res ← mk_mapp ``nonneg_of_cholesky [γ, γi, μ, μi, R, Ri, p, ms, Q],
-        interactive.concat_tags $ tactic.apply res,
+        interactive.concat_tags $ tactic.apply res
         -- Prove the three subgoals.
-        prove_poly_eq, swap,
-        prove_symmetric,
-        prove_cholesky ``(%%L) }
+        --prove_poly_eq, swap,
+        --prove_symmetric,
+        --prove_cholesky ``(%%L)
+        }
     | _ := tactic.trace "Error"
   end
 
@@ -105,12 +113,14 @@ meta def sos : tactic unit := do
   sos_aux t
 
 set_option trace.app_builder true
-set_option timeout 100000
+--set_option timeout 1000000
 
 -- 0 ≤ x^2
-example : (C 0) ≤ ((X 1) * (X 1) : mv_polynomial ℕ ℚ) := 
-by sos
+--example : (C 0) ≤ ((X 1) * (X 1) : mv_polynomial ℕ ℚ) := 
+--by sos
 
 -- 0 ≤ x^2 + 2xy + y^2
---example : (C 0) ≤ ((X 1) * (X 1) + (C 2) * (X 1) * (X 2) + (X 2) * (X 2) : mv_polynomial ℕ ℚ) :=
---by sos
+example : (C 0) ≤ (((X 1) * (X 1)) + ((C 2) * (X 1) * (X 2)) + ((X 2) * (X 2)) : mv_polynomial ℕ ℚ) :=
+begin
+  sorry, 
+end 
