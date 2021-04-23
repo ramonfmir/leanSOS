@@ -1,10 +1,5 @@
 import os
 import sys
-import socket
-import subprocess
-import argparse
-import time
-import threading
 from parse import *
 from julia.api import Julia
 
@@ -67,14 +62,15 @@ def run_sos(expr):
     jl.eval('ms = G.basis')
     jl.eval('nM, cM, L = MultivariateMoments.lowrankchol(Matrix(getmat(G)), SVDChol(), 0.0)')
 
-    d_raw, Q_raw, ms_raw, L_raw = jl.eval('return((d, Q, ms, L))')
+    dQ_raw, Q_raw, ms_raw, L_raw = jl.eval('return((d, Q, ms, L))')
 
-    d = str(d_raw)
+    dQ = str(dQ_raw)
     Q = format_matrix(Q_raw)
     ms = format_monomials(parse("{}[{}]{}", str(ms_raw))[1])
+    dL = "1"
     L = format_matrix(L_raw)
 
-    return d, Q, ms, L
+    return dQ, Q, ms, dL, L
 
 def main(ineq):
     expr = parse_expr(ineq)

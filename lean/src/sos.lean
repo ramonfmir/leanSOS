@@ -44,8 +44,8 @@ do
   [i, j] ← tactic.intro_lst [`i, `j],
   (_, _, _) ← simplify simp_lemmas.mk [] Q {fail_if_unchanged := ff},
   `[fin_cases i; fin_cases j; 
-    simp [list_to_vector, list_to_monomials, list_to_matrix, list_to_monomial];
-    try_for 10000 { ring }]
+    simp [list_to_vector, list_to_monomials, list_to_matrix, list_to_monomial, fin.sum_univ_succ];
+    ring]
 
 -- Quick and dirty tactic to prove that p = xT * Q * x.
 meta def prove_poly_eq : tactic unit := 
@@ -55,23 +55,22 @@ focus1 $ do
   lemmas ← l.mfoldl simp_lemmas.add_simp simp_lemmas.mk,
   (new_t, pr, _) ← target >>= simplify lemmas [``ms, ``Q, ``p],
   replace_target new_t pr,
-  `[simp [list_to_vector, list_to_monomials, list_to_matrix, list_to_monomial]] <|>
-  `[try_for 10000 { ring }]
+  `[simp [list_to_vector, list_to_monomials, list_to_matrix, list_to_monomial, fin.sum_univ_succ]; 
+    ring]
 
 setup_tactic_parser
- 
+
+-- Quick and dirty tactic to prove that Q = L^T * L
 meta def prove_cholesky (pL : parse texpr) : tactic unit := 
 do
   `(cholesky_decomposition %%Q %%hQ) ← target,
-  tactic.trace Q,
   tactic.use [pL],
   let l := [``matrix.mul, ``matrix.dot_product],
   lemmas ← l.mfoldl simp_lemmas.add_simp simp_lemmas.mk,
   (new_t, pr, _) ← target >>= simplify lemmas [``Q],
   replace_target new_t pr,
-  `[simp [list_to_vector, list_to_monomials, list_to_matrix, list_to_monomial]; 
-    ext i j; fin_cases i; fin_cases j;
-    try_for 10000 { ring }]
+  `[simp [list_to_vector, list_to_monomials, list_to_matrix, list_to_monomial, fin.sum_univ_succ]; 
+    ext i j; fin_cases i; fin_cases j; ring]
 
 meta def sos_aux (input : expr) : tactic unit := do 
   `(%%q ≤ %%p) ← target,
@@ -99,11 +98,11 @@ meta def sos_aux (input : expr) : tactic unit := do
         L ← matrix_from_list m n lL,
         -- Apply the main theorem. 
         res ← mk_mapp ``nonneg_of_cholesky [γ, γi, μ, μi, R, Ri, p, ms, Q],
-        interactive.concat_tags $ tactic.apply res
+        interactive.concat_tags $ tactic.apply res,
         -- Prove the three subgoals.
-        --prove_poly_eq, swap,
-        --prove_symmetric,
-        --prove_cholesky ``(%%L)
+        prove_poly_eq, swap,
+        prove_symmetric,
+        prove_cholesky ``(%%L)
         }
     | _ := tactic.trace "Error"
   end
@@ -111,16 +110,3 @@ meta def sos_aux (input : expr) : tactic unit := do
 meta def sos : tactic unit := do 
   t ← target,
   sos_aux t
-
-set_option trace.app_builder true
---set_option timeout 1000000
-
--- 0 ≤ x^2
---example : (C 0) ≤ ((X 1) * (X 1) : mv_polynomial ℕ ℚ) := 
---by sos
-
--- 0 ≤ x^2 + 2xy + y^2
-example : (C 0) ≤ (((X 1) * (X 1)) + ((C 2) * (X 1) * (X 2)) + ((X 2) * (X 2)) : mv_polynomial ℕ ℚ) :=
-begin
-  sorry, 
-end 
