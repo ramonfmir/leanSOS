@@ -1,38 +1,20 @@
 import os
+import sys
 import socket
-import subprocess
-import argparse
-import time
-import threading
 
-DETACHED_PROCESS = 0x00000008
-
-# Main Julia thread.
-class ServerThread(threading.Thread):
-    def run(self):
-        os.system('/Applications/Julia-1.5.app/Contents/Resources/julia/bin/julia server.jl')
-
-# Method to restart the server.
-def restart_server():
-    fnull = open(os.devnull, 'w')
-    t = ServerThread()
-    t.daemon = True
-    t.start()
+HOST = '127.0.0.1'  
+PORT = 65432        
 
 # Communicate with the server.
-def process(msg, start_server):
-    address = ("localhost", 65432)
-
+def send_polynomial(msg):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect(address)
-        s.sendall(msg)
+        s.connect((HOST, PORT))
+        s.sendall(msg.encode('utf-8'))
         data = s.recv(1024)
 
-    print(repr(data))
+    return data
 
-# Test.
 if __name__ == "__main__":  
-    #restart_server()
-    #time.sleep(2.0)
-    process(b'AVOOOOOO!', True)
+    result = send_polynomial(sys.argv[1])
+    print(result.decode('utf-8'))
 
