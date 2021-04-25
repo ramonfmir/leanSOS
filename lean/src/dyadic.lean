@@ -1,0 +1,110 @@
+import data.int.basic
+import data.rat.basic
+import data.real.basic
+
+-- Float structure before quotiening. Basic operations.
+
+structure float_raw := (m : ℤ) (e : ℤ)
+
+namespace float_raw 
+
+def neg (x : float_raw) : float_raw :=
+⟨-x.m, x.e⟩
+
+def add (x y : float_raw) : float_raw :=
+if x.e ≤ y.e 
+then ⟨x.m + y.m * 2 ^ int.to_nat (y.e - x.e), x.e⟩ 
+else ⟨y.m + x.m * 2 ^ int.to_nat (x.e - y.e), y.e⟩ 
+
+def mul (x y : float_raw) : float_raw :=
+⟨x.m * y.m, x.e + y.e⟩
+
+end float_raw
+
+-- To rational number properties.
+
+def to_rat : float_raw → ℚ := λ x, x.m * 2 ^ x.e
+
+-- TODO: Move
+lemma pow_rat_cast (x y : ℤ) (hy : 0 ≤ y) : ((x ^ int.to_nat y) : ℚ) = (x : ℚ) ^ (y : ℤ) :=
+begin
+  lift y to ℕ using hy, rw [int.to_nat_coe_nat], norm_num,
+end 
+
+lemma to_rat.neg {x y : float_raw} (h : to_rat x = to_rat y) 
+: to_rat (float_raw.neg x) = to_rat (float_raw.neg y) :=
+begin 
+  simp [float_raw.neg, to_rat] at *, dsimp,
+  iterate 2 { rw [int.cast_neg, ←neg_mul_eq_neg_mul], }, rw h,
+end
+
+lemma to_rat.add {x y x' y' : float_raw} (h : to_rat x = to_rat y) (h' : to_rat x' = to_rat y')
+: to_rat (float_raw.add x x') = to_rat (float_raw.add y y') :=
+begin 
+  simp [float_raw.add, to_rat] at *, split_ifs; push_cast;
+  iterate 2 { rw [add_mul], };
+  try { erw [pow_rat_cast 2 _ (sub_nonneg.2 h_1)], };
+  try { erw [pow_rat_cast 2 _ (sub_nonneg.2 (le_of_not_le h_1))], };
+  try { erw [pow_rat_cast 2 _ (sub_nonneg.2 h_2)], };
+  try { erw [pow_rat_cast 2 _ (sub_nonneg.2 (le_of_not_le h_2))], };
+  iterate 2 { erw [mul_assoc, ←fpow_add (by norm_num : (2 : ℚ) ≠ 0)], }; simp; 
+  try { rw [h, h']; ring, }; 
+  try { rw [h, ←h']; ring, }; 
+  try { rw [←h, h']; ring, }; 
+  try { rw [←h, ←h']; ring, },
+end 
+
+lemma to_rat.mul {x y x' y' : float_raw} (h : to_rat x = to_rat y) (h' : to_rat x' = to_rat y')
+: to_rat (float_raw.mul x x') = to_rat (float_raw.mul y y') :=
+begin 
+  simp [float_raw.mul, to_rat] at *, dsimp,
+  simp only [fpow_add (by norm_num : (2 : ℚ) ≠ 0)], push_cast,
+  calc ↑(x.m) * ↑(x'.m) * ((2 : ℚ) ^ x.e * (2 : ℚ) ^ x'.e) 
+      = (↑(x.m) * 2 ^ x.e) * (↑(x'.m) * 2 ^ x'.e) : by ring 
+  ... = (↑(y.m) * 2 ^ y.e) * (↑(y'.m) * 2 ^ y'.e) : by rw [h, h']
+  ... = ↑(y.m) * ↑(y'.m) * (2 ^ y.e * 2 ^ y'.e) : by ring,
+end 
+
+-- Define floats as float_raw modulo to_rat.
+
+@[reducible] private def R : float_raw → float_raw → Prop := λ x y, to_rat x = to_rat y
+private lemma R.reflexive : reflexive R := λ x, by unfold R; exact eq.refl
+private lemma R.symmetric : symmetric R := λ x y, by unfold R; exact eq.symm
+private lemma R.transitive : transitive R := λ x y z, by unfold R; exact eq.trans
+private lemma R.equivalence : equivalence R := ⟨R.reflexive, R.symmetric, R.transitive⟩
+
+instance float_raw.setoid : setoid float_raw := ⟨R, R.equivalence⟩
+
+def float := quotient float_raw.setoid
+
+local notation `𝔽` := float
+
+namespace float
+
+instance : comm_semiring 𝔽 := {
+  zero := ⟦⟨0, 0⟩⟧,
+  one := ⟦⟨1, 0⟩⟧,    
+  add := quotient.lift₂ (λ x y, ⟦float_raw.add x y⟧) (λ a₁ a₂ b₁ b₂ h₁ h₂, quotient.sound $ to_rat.add h₁ h₂),
+  mul := quotient.lift₂ (λ x y, ⟦float_raw.mul x y⟧) (λ a₁ a₂ b₁ b₂ h₁ h₂, quotient.sound $ to_rat.mul h₁ h₂),
+  zero_add := λ x, 
+    begin 
+      apply quotient.induction_on x, intros a, apply quotient.sound, 
+      simp only [float_raw.add], show to_rat _ = to_rat _, split_ifs; 
+      simp only [to_rat]; dsimp; push_cast;
+      try { erw [pow_rat_cast 2 _ (sub_nonneg.2 h)], };
+      try { erw [pow_rat_cast 2 _ (sub_nonneg.2 (le_of_not_le h))], };
+      simp,
+    end, 
+  add_zero := sorry,
+  add_assoc := sorry,
+  add_comm := sorry, 
+  zero_mul := sorry,
+  mul_zero := sorry,
+  one_mul := sorry,
+  mul_one := sorry,
+  mul_comm := sorry,
+  mul_assoc := sorry,
+  left_distrib := sorry,
+  right_distrib := sorry,
+  }
+end float
