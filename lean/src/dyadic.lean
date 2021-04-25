@@ -75,7 +75,7 @@ private lemma R.equivalence : equivalence R := ⟨R.reflexive, R.symmetric, R.tr
 
 instance float_raw.setoid : setoid float_raw := ⟨R, R.equivalence⟩
 
-def float := quotient float_raw.setoid
+def float : Type* := quotient float_raw.setoid
 
 local notation `𝔽` := float
 
@@ -106,5 +106,12 @@ instance : comm_semiring 𝔽 := {
   mul_assoc := sorry,
   left_distrib := sorry,
   right_distrib := sorry,
-  }
+}
+
+def f : 𝔽 → 𝔽 → 𝔽 := 
+quotient.lift₂ (λ x y, ⟦float_raw.add x y⟧) (λ a₁ a₂ b₁ b₂ h₁ h₂, quotient.sound $ to_rat.add h₁ h₂),
+
+-- Nice!
+#eval (quotient.lift to_rat (λ a b h, h)) (f (⟦⟨2, -8⟩⟧ : 𝔽) (⟦⟨50, 3⟩⟧ : 𝔽))
+
 end float
