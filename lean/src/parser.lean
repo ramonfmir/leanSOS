@@ -65,6 +65,6 @@ meta def matrix_from_list (n m : ℕ) (l : expr) : tactic expr := do
   e ← to_expr ``(list_to_matrix %%n %%m %%l (by refl) (λ i, by fin_cases i; refl)),
   return e
 
-def test_matrix : matrix (fin 2) (fin 2) ℚ :=
-by do { e ← (matrix_from_list 2 2 `([[0.1, 0.2], [0.3, 0.4]] : list (list ℚ)) ), tactic.exact e }
+-- def test_matrix : matrix (fin 2) (fin 2) ℚ :=
+-- by do { e ← (matrix_from_list 2 2 `([[0.1, 0.2], [0.3, 0.4]] : list (list ℚ)) ), tactic.exact e }
 

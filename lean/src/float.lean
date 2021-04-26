@@ -260,4 +260,7 @@ instance : linear_ordered_comm_ring 𝔽 := {
   ..float.comm_ring 
 }
 
+instance : decidable_eq 𝔽
+| x y := quotient.rec_on_subsingleton₂ x y $ λ a b, decidable_of_iff' _ quotient.eq
+
 end float

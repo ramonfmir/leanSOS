@@ -68,7 +68,8 @@ begin
   sos,
   { simp [matrix.dot_product, matrix.mul_vec, matrix.to_poly],
     simp [matrix.map, float.mk, list_to_vector, list_to_monomials, list_to_matrix, list_to_monomial, fin.sum_univ_succ], 
-    ring!, },
+    ring!, sorry, },
+  sorry,
 end 
 
 -- 0 ≤ x^2 + 2xy + y^2
