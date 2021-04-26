@@ -6,7 +6,7 @@ import system.io
 import tactic.ring
 import data.real.basic
 import data.mv_polynomial.basic
-import .parser .poly
+import .parser .poly .float
 
 open mv_polynomial poly
 
@@ -44,7 +44,7 @@ do
   [i, j] ← tactic.intro_lst [`i, `j],
   (_, _, _) ← simplify simp_lemmas.mk [] Q {fail_if_unchanged := ff},
   `[fin_cases i; fin_cases j; 
-    simp [list_to_vector, list_to_monomials, list_to_matrix, list_to_monomial, fin.sum_univ_succ];
+    simp [matrix.map, list_to_vector, list_to_monomials, list_to_matrix, list_to_monomial, fin.sum_univ_succ];
     ring]
 
 -- Quick and dirty tactic to prove that p = xT * Q * x.
@@ -55,7 +55,7 @@ focus1 $ do
   lemmas ← l.mfoldl simp_lemmas.add_simp simp_lemmas.mk,
   (new_t, pr, _) ← target >>= simplify lemmas [``ms, ``Q, ``p],
   replace_target new_t pr,
-  `[simp [list_to_vector, list_to_monomials, list_to_matrix, list_to_monomial, fin.sum_univ_succ]; 
+  `[simp [matrix.map, list_to_vector, list_to_monomials, list_to_matrix, list_to_monomial, fin.sum_univ_succ]; 
     ring]
 
 setup_tactic_parser
@@ -69,7 +69,7 @@ do
   lemmas ← l.mfoldl simp_lemmas.add_simp simp_lemmas.mk,
   (new_t, pr, _) ← target >>= simplify lemmas [``Q],
   replace_target new_t pr,
-  `[simp [list_to_vector, list_to_monomials, list_to_matrix, list_to_monomial, fin.sum_univ_succ]; 
+  `[simp [matrix.map, list_to_vector, list_to_monomials, list_to_matrix, list_to_monomial, fin.sum_univ_succ]; 
     ext i j; fin_cases i; fin_cases j; ring]
 
 meta def sos_aux (input : expr) : tactic unit := do 
@@ -90,19 +90,21 @@ meta def sos_aux (input : expr) : tactic unit := do
         γi ← to_expr ``(fin.fintype %%n),
         μ ← to_expr ``(fin %%m),
         μi ← to_expr ``(fin.fintype %%m),
-        R ← to_expr ``(ℚ),
-        Ri ← to_expr ``(rat.linear_ordered_comm_ring),
+        R ← to_expr ``(float),
+        Ri ← to_expr ``(float.linear_ordered_comm_ring),
         -- Monomials and main matrix.
         ms ← monomials_from_list n lms,
-        Q ← matrix_from_list n n lQ,
-        L ← matrix_from_list m n lL,
+        QZZ ← matrix_from_list n n lQ,
+        LZZ ← matrix_from_list m n lL,
+        Q ← to_expr ``(matrix.map %%QZZ float.mk),
+        L ← to_expr ``(matrix.map %%LZZ float.mk),
         -- Apply the main theorem. 
         res ← mk_mapp ``nonneg_of_cholesky [γ, γi, μ, μi, R, Ri, p, ms, Q],
-        interactive.concat_tags $ tactic.apply res,
+        interactive.concat_tags $ tactic.apply res
         -- Prove the three subgoals.
-        prove_poly_eq, swap,
-        prove_symmetric,
-        prove_cholesky ``(%%L)
+        --prove_poly_eq, swap,
+        --prove_symmetric,
+        --prove_cholesky ``(%%L)
         }
     | _ := tactic.trace "Error"
   end

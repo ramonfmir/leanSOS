@@ -3,6 +3,8 @@ import data.real.basic
 import data.mv_polynomial.basic
 import tactic.fin_cases
 
+import .float
+
 open lean.parser tactic interactive
 
 -- Parsing strings.
@@ -38,10 +40,10 @@ meta def rat_list_of_lists_from_string (st : string) : tactic expr := do
 
 -- Transforming lists (definitions).
 
-@[reducible] noncomputable def list_to_monomial (l : list ℕ) : mv_polynomial ℕ ℚ :=
+@[reducible] noncomputable def list_to_monomial (l : list ℕ) : mv_polynomial ℕ float :=
 (l.map mv_polynomial.X).foldl (*) (mv_polynomial.C 1)
 
-@[reducible] noncomputable def list_to_monomials (l : list (list ℕ)) : list (mv_polynomial ℕ ℚ) :=
+@[reducible] noncomputable def list_to_monomials (l : list (list ℕ)) : list (mv_polynomial ℕ float) :=
 l.map list_to_monomial
 
 @[reducible] def list_to_vector {α} (n : ℕ) (l : list α) (hl : l.length = n) 

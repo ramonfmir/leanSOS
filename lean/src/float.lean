@@ -218,9 +218,6 @@ begin
   simplify_mul, simp [fpow_add (by norm_num : (2 : ℚ) ≠ 0)], ring,
 end
 
-#print rat.decidable_le
-#print decidable_rel
-
 instance : linear_ordered_comm_ring 𝔽 := {
   le := λ x y, eval x ≤ eval y,
   le_refl := λ x, quotient.induction_on x (λ a, rat.le_refl _), 
