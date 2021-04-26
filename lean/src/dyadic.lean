@@ -59,6 +59,10 @@ meta def float.split_add : tactic unit := do
   `[simp only [float_raw.add] at *, split_ifs; 
     simp only [has_equiv.equiv, setoid.r, R, to_rat]; dsimp; push_cast]
 
+meta def float.split_mul : tactic unit := do
+  `[simp only [float_raw.mul] at *;
+    simp only [has_equiv.equiv, setoid.r, R, to_rat]; dsimp; push_cast]
+
 end interactive
 end tactic
 
@@ -112,6 +116,8 @@ local notation `𝔽` := float
 
 namespace float
 
+def mk : ℤ × ℤ → 𝔽 := λ x, ⟦⟨x.1, x.2⟩⟧ 
+
 def eval : 𝔽 → ℚ := quotient.lift to_rat (λ a b h, h)
 
 instance : comm_semiring 𝔽 := {
@@ -137,20 +143,38 @@ instance : comm_semiring 𝔽 := {
       float.split_add; apply_pow_rat_cast h; apply_pow_rat_cast h_1;
       simp [add_mul, mul_assoc, ←fpow_add (by norm_num : (2 : ℚ) ≠ 0), add_comm],
     end), 
-  zero_mul := sorry,
-  mul_zero := sorry,
-  one_mul := sorry,
-  mul_one := sorry,
-  mul_comm := sorry,
-  mul_assoc := sorry,
+  zero_mul := λ x, quotient.induction_on x (λ a, quotient.sound $
+    begin 
+      float.split_mul; simp,
+    end), 
+  mul_zero := λ x, quotient.induction_on x (λ a, quotient.sound $
+    begin 
+      float.split_mul; simp,
+    end), 
+  one_mul := λ x, quotient.induction_on x (λ a, quotient.sound $
+    begin 
+      float.split_mul; simp,
+    end), 
+  mul_one := λ x, quotient.induction_on x (λ a, quotient.sound $
+    begin 
+      float.split_mul; simp,
+    end), 
+  mul_comm := λ x y, quotient.induction_on₂ x y (λ a b, quotient.sound $
+    begin 
+      float.split_mul, simp [fpow_add (by norm_num : (2 : ℚ) ≠ 0)], ring,
+    end),
+  mul_assoc := λ x y z, quotient.induction_on₃ x y z (λ a b c, quotient.sound $
+    begin 
+      float.split_mul, simp [fpow_add (by norm_num : (2 : ℚ) ≠ 0)], ring,
+    end),
   left_distrib := sorry,
   right_distrib := sorry,
 }
 
 def f : 𝔽 → 𝔽 → 𝔽 := 
-quotient.lift₂ (λ x y, ⟦float_raw.add x y⟧) (λ a₁ a₂ b₁ b₂ h₁ h₂, quotient.sound $ to_rat.add h₁ h₂),
+quotient.lift₂ (λ x y, ⟦float_raw.add x y⟧) (λ a₁ a₂ b₁ b₂ h₁ h₂, quotient.sound $ to_rat.add h₁ h₂)
 
 -- Nice!
-#eval  (f (⟦⟨2, -8⟩⟧ : 𝔽) (⟦⟨50, 3⟩⟧ : 𝔽))
+#eval eval (f (⟦⟨2, -8⟩⟧ : 𝔽) (⟦⟨50, 3⟩⟧ : 𝔽))
 
 end float
