@@ -33,7 +33,7 @@ def run_sos(expr):
     dQ = str(dQ_raw)
     Q = format_matrix(Q_raw)
     ms = format_monomials(parse("{}[{}]{}", str(ms_raw))[1])
-    dL = "1"
+    dL = str(len(L_raw[0]))
     L = format_matrix(L_raw)
 
     f = open("/Users/ramon/Documents/experiments/leanSOS/lean/scripts/temp.txt", "w")

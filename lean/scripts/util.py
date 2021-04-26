@@ -1,5 +1,5 @@
 from parse import *
-
+import math
 
 def parse_arith(expr):
     return expr
@@ -15,7 +15,7 @@ def parse_expr(expr):
 
 # Transforms 'a, b; c, d' into '[[a, b], [c, d]].
 def format_matrix(M):
-    rows = ['[{:s}]'.format(', '.join(['{:.10f}'.format(x) for x in row])) for row in M]
+    rows = ['[{:s}]'.format(', '.join([format_float(x) for x in row])) for row in M]
     return '[{:s}]'.format(', '.join(rows))
 
 # Transforms 'x₁' into "[[1]]"
@@ -38,3 +38,8 @@ def format_monomial(m):
 def format_monomials(ms):
     ms = ms.split(", ")
     return "[[" + "], [".join(map(format_monomial, ms)) + "]]"
+
+def format_float(f):
+    (m, d) = float.as_integer_ratio(f)
+    e = math.log2(d)
+    return '({:d}, {:d})'.format(int(m), int(e))
