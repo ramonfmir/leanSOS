@@ -28,8 +28,8 @@ meta def nat_list_of_lists_from_string (st : string) : tactic expr := do
 
 private meta def rat_list_of_lists_from_string_aux (st : string) : lean.parser expr := do
   (t, s) ← with_input types.texpr st,
-  e <- to_expr ``(%%t : list (list ℚ)),
-  n <- eval_expr' (list (list ℚ)) e,
+  e <- to_expr ``(%%t : list (list (ℤ × ℤ))),
+  n <- eval_expr' (list (list (ℤ × ℤ))) e,
   return (reflect n)
 
 meta def rat_list_of_lists_from_string (st : string) : tactic expr := do
