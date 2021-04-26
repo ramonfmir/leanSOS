@@ -1,6 +1,7 @@
 import data.int.basic
 import data.rat.basic
 import data.real.basic
+import tactic
 
 -- Float structure before quotiening. Basic operations.
 
@@ -26,10 +27,36 @@ end float_raw
 def to_rat : float_raw → ℚ := λ x, x.m * 2 ^ x.e
 
 -- TODO: Move
-lemma pow_rat_cast (x y : ℤ) (hy : 0 ≤ y) : ((x ^ int.to_nat y) : ℚ) = (x : ℚ) ^ (y : ℤ) :=
+lemma pow_rat_cast (x : ℤ) {y : ℤ} (hy : 0 ≤ y) : ((x ^ int.to_nat y) : ℚ) = (x : ℚ) ^ (y : ℤ) :=
 begin
   lift y to ℕ using hy, rw [int.to_nat_coe_nat], norm_num,
 end 
+
+open tactic
+open interactive (parse)
+open interactive.types
+open lean.parser (ident)
+
+namespace tactic 
+namespace interactive
+
+meta def erewrite_target (h : expr) (cfg : rewrite_cfg := {md := semireducible}) : tactic unit :=
+do t ← target,
+   (new_t, prf, _) ← tactic.rewrite h t cfg,
+   replace_target new_t prf
+
+meta def apply_pow_rat_cast (h : parse ident) : tactic unit := do 
+  e ← get_local h,
+  t ← infer_type e,
+  r ← match t with 
+  | `(%%a ≤ %%b) := tactic.to_expr ``(pow_rat_cast 2 (sub_nonneg.2 %%e))
+  | `(¬(%%a ≤ %%b)) := tactic.to_expr ``(pow_rat_cast 2 (sub_nonneg.2 (le_of_not_le %%e)))
+  | _ := failed
+  end,
+  erewrite_target r
+
+end interactive
+end tactic
 
 lemma to_rat.neg {x y : float_raw} (h : to_rat x = to_rat y) 
 : to_rat (float_raw.neg x) = to_rat (float_raw.neg y) :=
@@ -43,10 +70,10 @@ lemma to_rat.add {x y x' y' : float_raw} (h : to_rat x = to_rat y) (h' : to_rat 
 begin 
   simp [float_raw.add, to_rat] at *, split_ifs; push_cast;
   iterate 2 { rw [add_mul], };
-  try { erw [pow_rat_cast 2 _ (sub_nonneg.2 h_1)], };
-  try { erw [pow_rat_cast 2 _ (sub_nonneg.2 (le_of_not_le h_1))], };
-  try { erw [pow_rat_cast 2 _ (sub_nonneg.2 h_2)], };
-  try { erw [pow_rat_cast 2 _ (sub_nonneg.2 (le_of_not_le h_2))], };
+  try { erw [pow_rat_cast 2 (sub_nonneg.2 h_1)], };
+  try { erw [pow_rat_cast 2 (sub_nonneg.2 (le_of_not_le h_1))], };
+  try { erw [pow_rat_cast 2 (sub_nonneg.2 h_2)], };
+  try { erw [pow_rat_cast 2 (sub_nonneg.2 (le_of_not_le h_2))], };
   iterate 2 { erw [mul_assoc, ←fpow_add (by norm_num : (2 : ℚ) ≠ 0)], }; simp; 
   try { rw [h, h']; ring, }; 
   try { rw [h, ←h']; ring, }; 
@@ -81,6 +108,9 @@ local notation `𝔽` := float
 
 namespace float
 
+def eval : 𝔽 → ℚ := quotient.lift to_rat (λ a b h, h)
+
+
 instance : comm_semiring 𝔽 := {
   zero := ⟦⟨0, 0⟩⟧,
   one := ⟦⟨1, 0⟩⟧,    
@@ -89,15 +119,28 @@ instance : comm_semiring 𝔽 := {
   zero_add := λ x, 
     begin 
       apply quotient.induction_on x, intros a, apply quotient.sound, 
+      simp only [float_raw.add], split_ifs; 
+      simp only [has_equiv.equiv, setoid.r, R, to_rat]; dsimp; push_cast;
+      apply_pow_rat_cast h; simp,
+    end, 
+  add_zero := λ x, 
+    begin 
+      apply quotient.induction_on x, intros a, apply quotient.sound, 
       simp only [float_raw.add], show to_rat _ = to_rat _, split_ifs; 
       simp only [to_rat]; dsimp; push_cast;
-      try { erw [pow_rat_cast 2 _ (sub_nonneg.2 h)], };
-      try { erw [pow_rat_cast 2 _ (sub_nonneg.2 (le_of_not_le h))], };
-      simp,
+      apply_pow_rat_cast h; simp,
     end, 
-  add_zero := sorry,
   add_assoc := sorry,
-  add_comm := sorry, 
+  add_comm := λ x y, 
+    begin 
+      apply quotient.induction_on₂ x y, intros a b, apply quotient.sound,
+      simp only [float_raw.add], show to_rat _ = to_rat _, split_ifs;
+      simp only [to_rat]; dsimp; push_cast;
+      apply_pow_rat_cast h; apply_pow_rat_cast h_1,
+      { ring_exp, iterate 2 { erw [←fpow_add (by norm_num : (2 : ℚ) ≠ 0)], },
+        ring_exp, ring, },
+      { sorry, }
+    end, 
   zero_mul := sorry,
   mul_zero := sorry,
   one_mul := sorry,
@@ -112,6 +155,6 @@ def f : 𝔽 → 𝔽 → 𝔽 :=
 quotient.lift₂ (λ x y, ⟦float_raw.add x y⟧) (λ a₁ a₂ b₁ b₂ h₁ h₂, quotient.sound $ to_rat.add h₁ h₂),
 
 -- Nice!
-#eval (quotient.lift to_rat (λ a b h, h)) (f (⟦⟨2, -8⟩⟧ : 𝔽) (⟦⟨50, 3⟩⟧ : 𝔽))
+#eval  (f (⟦⟨2, -8⟩⟧ : 𝔽) (⟦⟨50, 3⟩⟧ : 𝔽))
 
 end float
