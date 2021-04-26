@@ -52,16 +52,15 @@ meta def apply_pow_rat_cast (h : parse ident) : tactic unit := do
   end,
   rewrite_target r {md := semireducible}
 
-meta def float_raw.split_add : tactic unit := do
-  `[simp only [float_raw.add] at *, split_ifs; dsimp; push_cast]
-
-meta def float.split_add : tactic unit := do
+meta def simplify_add : tactic unit := do
   `[simp only [float_raw.add] at *, split_ifs; 
-    simp only [has_equiv.equiv, setoid.r, R, to_rat]; dsimp; push_cast]
+    try { simp only [has_equiv.equiv, setoid.r, R, to_rat] }; 
+    try { dsimp }; push_cast]
 
-meta def float.split_mul : tactic unit := do
+meta def simplify_mul : tactic unit := do
   `[simp only [float_raw.mul] at *;
-    simp only [has_equiv.equiv, setoid.r, R, to_rat]; dsimp; push_cast]
+    try { simp only [has_equiv.equiv, setoid.r, R, to_rat] }; 
+    try { dsimp }; push_cast]
 
 end interactive
 end tactic
@@ -127,48 +126,68 @@ instance : comm_semiring 𝔽 := {
   mul := quotient.lift₂ (λ x y, ⟦float_raw.mul x y⟧) (λ a₁ a₂ b₁ b₂ h₁ h₂, quotient.sound $ to_rat.mul h₁ h₂),
   zero_add := λ x, quotient.induction_on x (λ a, quotient.sound $
     begin 
-      float.split_add; apply_pow_rat_cast h; simp,
+      simplify_add; apply_pow_rat_cast h; simp,
     end), 
   add_zero := λ x, quotient.induction_on x (λ a, quotient.sound $
     begin 
-      float.split_add; apply_pow_rat_cast h; simp,
+      simplify_add; apply_pow_rat_cast h; simp,
     end), 
   add_assoc := λ x y z, quotient.induction_on₃ x y z (λ a b c, quotient.sound $
     begin 
-      float.split_add; apply_pow_rat_cast h; apply_pow_rat_cast h_1; try { apply_pow_rat_cast h_2, };
+      simplify_add; apply_pow_rat_cast h; apply_pow_rat_cast h_1; try { apply_pow_rat_cast h_2, };
       simp [add_mul, mul_assoc, ←fpow_add (by norm_num : (2 : ℚ) ≠ 0), add_comm, add_assoc]; ring,
     end),
   add_comm := λ x y, quotient.induction_on₂ x y (λ a b, quotient.sound $
     begin 
-      float.split_add; apply_pow_rat_cast h; apply_pow_rat_cast h_1;
+      simplify_add; apply_pow_rat_cast h; apply_pow_rat_cast h_1;
       simp [add_mul, mul_assoc, ←fpow_add (by norm_num : (2 : ℚ) ≠ 0), add_comm],
     end), 
   zero_mul := λ x, quotient.induction_on x (λ a, quotient.sound $
     begin 
-      float.split_mul; simp,
+      simplify_mul; simp,
     end), 
   mul_zero := λ x, quotient.induction_on x (λ a, quotient.sound $
     begin 
-      float.split_mul; simp,
+      simplify_mul; simp,
     end), 
   one_mul := λ x, quotient.induction_on x (λ a, quotient.sound $
     begin 
-      float.split_mul; simp,
+      simplify_mul; simp,
     end), 
   mul_one := λ x, quotient.induction_on x (λ a, quotient.sound $
     begin 
-      float.split_mul; simp,
+      simplify_mul; simp,
     end), 
   mul_comm := λ x y, quotient.induction_on₂ x y (λ a b, quotient.sound $
     begin 
-      float.split_mul, simp [fpow_add (by norm_num : (2 : ℚ) ≠ 0)], ring,
+      simplify_mul, simp [fpow_add (by norm_num : (2 : ℚ) ≠ 0)], ring,
     end),
   mul_assoc := λ x y z, quotient.induction_on₃ x y z (λ a b c, quotient.sound $
     begin 
-      float.split_mul, simp [fpow_add (by norm_num : (2 : ℚ) ≠ 0)], ring,
+      simplify_mul, simp [fpow_add (by norm_num : (2 : ℚ) ≠ 0)], ring,
     end),
-  left_distrib := sorry,
-  right_distrib := sorry,
+  left_distrib := λ x y z, quotient.induction_on₃ x y z (λ a b c, quotient.sound $
+    begin 
+      simplify_mul; simplify_add; apply_pow_rat_cast h; apply_pow_rat_cast h_1;
+      simp [add_mul, mul_add, ←fpow_add (by norm_num : (2 : ℚ) ≠ 0)]; ring!,
+      { left, ring, },
+      { replace h_1 := (add_le_add_iff_left a.e).1 (le_of_not_le h_1),
+        simp [le_antisymm h h_1], left, ring, },
+      { replace h_1 := (add_le_add_iff_left a.e).1 h_1,
+        simp [le_antisymm (le_of_not_le h) h_1], left, ring, },
+      { left, ring, },
+    end),
+  right_distrib := λ x y z, quotient.induction_on₃ x y z (λ a b c, quotient.sound $
+    begin 
+      simplify_mul; simplify_add; apply_pow_rat_cast h; apply_pow_rat_cast h_1;
+      simp [add_mul, mul_add, ←fpow_add (by norm_num : (2 : ℚ) ≠ 0)]; ring!,
+      { left, ring, },
+      { replace h_1 := (add_le_add_iff_right c.e).1 (le_of_not_le h_1),
+        simp [le_antisymm h h_1], left, ring, },
+      { replace h_1 := (add_le_add_iff_right c.e).1 h_1,
+        simp [le_antisymm (le_of_not_le h) h_1], left, ring, },
+      { left, ring, },
+    end),
 }
 
 def f : 𝔽 → 𝔽 → 𝔽 := 
