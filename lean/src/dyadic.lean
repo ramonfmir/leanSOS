@@ -32,6 +32,8 @@ begin
   lift y to ℕ using hy, rw [int.to_nat_coe_nat], norm_num,
 end 
 
+-- Some tactics.
+
 open tactic
 open interactive (parse)
 open interactive.types
@@ -39,11 +41,6 @@ open lean.parser (ident)
 
 namespace tactic 
 namespace interactive
-
-meta def erewrite_target (h : expr) (cfg : rewrite_cfg := {md := semireducible}) : tactic unit :=
-do t ← target,
-   (new_t, prf, _) ← tactic.rewrite h t cfg,
-   replace_target new_t prf
 
 meta def apply_pow_rat_cast (h : parse ident) : tactic unit := do 
   e ← get_local h,
@@ -53,7 +50,14 @@ meta def apply_pow_rat_cast (h : parse ident) : tactic unit := do
   | `(¬(%%a ≤ %%b)) := tactic.to_expr ``(pow_rat_cast 2 (sub_nonneg.2 (le_of_not_le %%e)))
   | _ := failed
   end,
-  erewrite_target r
+  rewrite_target r {md := semireducible}
+
+meta def float_raw.split_add : tactic unit := do
+  `[simp only [float_raw.add] at *, split_ifs; dsimp; push_cast]
+
+meta def float.split_add : tactic unit := do
+  `[simp only [float_raw.add] at *, split_ifs; 
+    simp only [has_equiv.equiv, setoid.r, R, to_rat]; dsimp; push_cast]
 
 end interactive
 end tactic
@@ -110,37 +114,29 @@ namespace float
 
 def eval : 𝔽 → ℚ := quotient.lift to_rat (λ a b h, h)
 
-
 instance : comm_semiring 𝔽 := {
   zero := ⟦⟨0, 0⟩⟧,
   one := ⟦⟨1, 0⟩⟧,    
   add := quotient.lift₂ (λ x y, ⟦float_raw.add x y⟧) (λ a₁ a₂ b₁ b₂ h₁ h₂, quotient.sound $ to_rat.add h₁ h₂),
   mul := quotient.lift₂ (λ x y, ⟦float_raw.mul x y⟧) (λ a₁ a₂ b₁ b₂ h₁ h₂, quotient.sound $ to_rat.mul h₁ h₂),
-  zero_add := λ x, 
+  zero_add := λ x, quotient.induction_on x (λ a, quotient.sound $
     begin 
-      apply quotient.induction_on x, intros a, apply quotient.sound, 
-      simp only [float_raw.add], split_ifs; 
-      simp only [has_equiv.equiv, setoid.r, R, to_rat]; dsimp; push_cast;
-      apply_pow_rat_cast h; simp,
-    end, 
-  add_zero := λ x, 
+      float.split_add; apply_pow_rat_cast h; simp,
+    end), 
+  add_zero := λ x, quotient.induction_on x (λ a, quotient.sound $
     begin 
-      apply quotient.induction_on x, intros a, apply quotient.sound, 
-      simp only [float_raw.add], show to_rat _ = to_rat _, split_ifs; 
-      simp only [to_rat]; dsimp; push_cast;
-      apply_pow_rat_cast h; simp,
-    end, 
-  add_assoc := sorry,
-  add_comm := λ x y, 
+      float.split_add; apply_pow_rat_cast h; simp,
+    end), 
+  add_assoc := λ x y z, quotient.induction_on₃ x y z (λ a b c, quotient.sound $
     begin 
-      apply quotient.induction_on₂ x y, intros a b, apply quotient.sound,
-      simp only [float_raw.add], show to_rat _ = to_rat _, split_ifs;
-      simp only [to_rat]; dsimp; push_cast;
-      apply_pow_rat_cast h; apply_pow_rat_cast h_1,
-      { ring_exp, iterate 2 { erw [←fpow_add (by norm_num : (2 : ℚ) ≠ 0)], },
-        ring_exp, ring, },
-      { sorry, }
-    end, 
+      float.split_add; apply_pow_rat_cast h; apply_pow_rat_cast h_1; try { apply_pow_rat_cast h_2, };
+      simp [add_mul, mul_assoc, ←fpow_add (by norm_num : (2 : ℚ) ≠ 0), add_comm, add_assoc]; ring,
+    end),
+  add_comm := λ x y, quotient.induction_on₂ x y (λ a b, quotient.sound $
+    begin 
+      float.split_add; apply_pow_rat_cast h; apply_pow_rat_cast h_1;
+      simp [add_mul, mul_assoc, ←fpow_add (by norm_num : (2 : ℚ) ≠ 0), add_comm],
+    end), 
   zero_mul := sorry,
   mul_zero := sorry,
   one_mul := sorry,
