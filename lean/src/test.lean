@@ -12,38 +12,38 @@ open mv_polynomial poly
 
 -- Test intermediate steps.
 
-noncomputable def p : mv_polynomial ℕ ℝ := (X 1) * (X 1)
-noncomputable def ms : fin 1 → mv_polynomial ℕ ℝ := λ _, X 1
-def Q : fin 1 → fin 1 → ℝ := λ _ _, 1
+-- noncomputable def p : mv_polynomial ℕ ℝ := (X 1) * (X 1)
+-- noncomputable def ms : fin 1 → mv_polynomial ℕ ℝ := λ _, X 1
+-- def Q : fin 1 → fin 1 → ℝ := λ _ _, 1
 
-lemma Qsymmetric : matrix.symmetric Q := 
-by prove_symmetric
+-- lemma Qsymmetric : matrix.symmetric Q := 
+-- by prove_symmetric
 
-lemma Qsymmetric2 : matrix.symmetric (λ _ _, 1 : matrix (fin 1) (fin 1) ℝ) :=
-by prove_symmetric 
+-- lemma Qsymmetric2 : matrix.symmetric (λ _ _, 1 : matrix (fin 1) (fin 1) ℝ) :=
+-- by prove_symmetric 
 
-lemma Qmsp : p = matrix.dot_product ms (matrix.mul_vec (matrix.to_poly Q) ms) :=
-by prove_poly_eq
+-- lemma Qmsp : p = matrix.dot_product ms (matrix.mul_vec (matrix.to_poly Q) ms) :=
+-- by prove_poly_eq
 
-lemma Qcholesky : @cholesky_decomposition (fin 1) _ (fin 1) _ ℝ _ Q Qsymmetric :=
-by prove_cholesky ``(λ _ _, 1) 
+-- lemma Qcholesky : @cholesky_decomposition (fin 1) _ (fin 1) _ ℝ _ Q Qsymmetric :=
+-- by prove_cholesky ``(λ _ _, 1) 
 
--- Experiments with the ring tactic.
+-- -- Experiments with the ring tactic.
 
-example : (C 1) + (C 1) = ((C 2) : mv_polynomial ℕ ℝ) := 
-begin 
-  simp; ring,
-end
+-- example : (C 1) + (C 1) = ((C 2) : mv_polynomial ℕ ℝ) := 
+-- begin 
+--   simp; ring,
+-- end
 
-example : (X 1) + (X 1) = ((C 2) * (X 1) : mv_polynomial ℕ ℝ) := 
-begin 
-  simp; ring,
-end
+-- example : (X 1) + (X 1) = ((C 2) * (X 1) : mv_polynomial ℕ ℝ) := 
+-- begin 
+--   simp; ring,
+-- end
 
-example : finset.univ.sum (λ x : fin 2, (C 1 : mv_polynomial ℕ ℚ)) = C 2 :=
-begin 
-  simp,
-end  
+-- example : finset.univ.sum (λ x : fin 2, (C 1 : mv_polynomial ℕ ℚ)) = C 2 :=
+-- begin 
+--   simp,
+-- end  
 
 -- example : 
 --   ((X 1) * (X 1) + (C 2) * (X 1) * (X 2) + (X 2) * (X 2) : mv_polynomial ℕ ℚ)
@@ -57,10 +57,22 @@ end
 --   prove_poly_eq,
 -- end 
 
+set_option timeout 1000000
+
+-- example : (C (float.mk ⟨1, 0⟩)) * (X 1) = ((X 1) : mv_polynomial ℕ float) :=
+-- begin 
+--   simp [float.mk], dsimp, ring,
+--   sorry,
+-- end 
+
 -- Test whole thing.
 
-set_option trace.app_builder true
-set_option timeout 1000000
+-- set_option trace.app_builder true
+-- set_option timeout 1000000
+
+#eval if (1 : ℕ) = 2 then 1 else 0
+#eval if ((⟦⟨1,0⟩⟧ : float) = (1 : float)) then 1 else 0
+
 
 -- 0 ≤ x^2
 example : (C (0 : float)) ≤ (X 1) * (X 1) := 
@@ -78,4 +90,6 @@ begin
   --sos,
   sorry, 
 end 
+
+-- 0 ≤ 1 + x + x^2 ([[1,1/2],[1,1/2]])
 
