@@ -117,6 +117,33 @@ begin
   simp,
 end 
 
+example : (rat.of_int 1) + (rat.of_int 2) = rat.of_int 3 :=
+begin 
+  simp [rat.of_int], ring,
+end 
+
+@[simp] theorem add_def (a b c d : ℤ)
+: (float.mk ⟨a, b⟩) + (float.mk ⟨c, d⟩) =
+float.mk (if b ≤ d 
+then ⟨a + c * 2 ^ int.to_nat (d - b), b⟩ 
+else ⟨c + a * 2 ^ int.to_nat (b - d), d⟩ ) :=
+begin 
+  sorry,
+end  
+
+example : (float.mk ⟨1, -1⟩) + (float.mk ⟨3, -1⟩) = float.mk ⟨2, 0⟩ :=
+begin 
+  simp [add_def], split_ifs; try {contradiction}, simp [float.mk], show to_rat _ = _,
+  simp [to_rat], norm_num, 
+end 
+
+example : 
+(C (float.mk ⟨1, 1⟩)) * (X 1) + (C (float.mk ⟨3, 1⟩)) * (X 1) 
+= (C (float.mk ⟨2, 0⟩)) * (X 1 : mv_polynomial ℕ float) :=
+begin 
+  simp, ring,
+end 
+
 -- Test whole thing.
 
 -- set_option trace.app_builder true
