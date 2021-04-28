@@ -4,6 +4,7 @@
 
 import tactic.ring2
 import tactic.ring
+import tactic.show_term
 import data.real.basic
 import data.mv_polynomial.basic
 import .poly .psd .sos .float
@@ -57,13 +58,64 @@ open mv_polynomial poly
 --   prove_poly_eq,
 -- end 
 
+#check real.of_cauchy
+
 set_option timeout 1000000
 
--- example : (C (float.mk ⟨1, 0⟩)) * (X 1) = ((X 1) : mv_polynomial ℕ float) :=
--- begin 
---   simp [float.mk], dsimp, ring,
---   sorry,
--- end 
+#eval if ((C (float.mk2 1 0)) = (1 : mv_polynomial ℕ float)) then 0 else 1
+
+#eval if ((C (1 : ℝ)) = (1 : mv_polynomial ℕ ℝ)) then 0 else 1
+
+example : (C (rat.of_int 1 : ℚ)) = (1 : mv_polynomial ℕ ℚ) :=
+begin 
+  refl,
+end 
+
+example : (C (float.mk ⟨1, 0⟩)) = (1 : mv_polynomial ℕ float) :=
+begin 
+  show_term { refl, }
+end 
+
+example : (C (1 : ℝ)) * (X 1) = (X 1 : mv_polynomial ℕ ℝ) :=
+begin 
+  simp,
+end 
+
+example {α} [linear_ordered_comm_ring α] 
+: (C (1 : α)) * (X 1) = (X 1 : mv_polynomial ℕ α) :=
+begin 
+  show_term { simp, }
+end 
+
+example : (C (rat.of_int 1 : ℚ)) * (X 1) = (X 1 : mv_polynomial ℕ ℚ) :=
+begin 
+  simp, sorry,
+end 
+
+example : (C (1 : float)) * (X 1) = (X 1 : mv_polynomial ℕ float) :=
+begin 
+  simp,
+end 
+
+example : (1 : float) • (X 1) = (X 1 : mv_polynomial ℕ float) :=
+begin 
+  show_term {
+  simp, }
+end 
+
+#check one_smul
+
+example : C (1 + 0) * (X 1) = (X 1 : mv_polynomial ℕ ℚ) :=
+begin
+  simp,
+end 
+
+@[simp] lemma avo : float.mk ⟨1, 0⟩ = 1 := rfl
+
+example : (C (float.mk ⟨1, 0⟩)) * (X 1) = (X 1 : mv_polynomial ℕ float) :=
+begin 
+  simp,
+end 
 
 -- Test whole thing.
 
@@ -71,7 +123,8 @@ set_option timeout 1000000
 -- set_option timeout 1000000
 
 #eval if (1 : ℕ) = 2 then 1 else 0
-#eval if ((⟦⟨1,0⟩⟧ : float) = (1 : float)) then 1 else 0
+#eval if (((C (float.mk2 1 0)) : mv_polynomial ℕ float) = (C (1 : float))) then 1 else 0
+
 
 
 -- 0 ≤ x^2
@@ -79,8 +132,9 @@ example : (C (0 : float)) ≤ (X 1) * (X 1) :=
 begin 
   sos,
   { simp [matrix.dot_product, matrix.mul_vec, matrix.to_poly],
-    simp [matrix.map, float.mk, list_to_vector, list_to_monomials, list_to_matrix, list_to_monomial, fin.sum_univ_succ], 
-    ring!, sorry, },
+    simp only [matrix.map, list.map, list.foldl, float.mk, list_to_vector, 
+    list_to_monomials, list_to_matrix, list_to_monomial, fin.sum_univ_succ], dsimp,
+    ring, sorry, },
   sorry,
 end 
 

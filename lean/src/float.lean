@@ -122,11 +122,22 @@ namespace float
 
 def mk : ℤ × ℤ → 𝔽 := λ x, ⟦⟨x.1, x.2⟩⟧ 
 
+def mk2 : ℤ → ℤ → 𝔽 := λ x y, ⟦⟨x, y⟩⟧ 
+
 def eval : 𝔽 → ℚ := quotient.lift to_rat (λ a b h, h)
 
+def of_int (n : ℤ) : float := ⟦⟨n, 0⟩⟧
+
+@[irreducible] def zero := mk ⟨0, 0⟩
+@[irreducible] def one := mk ⟨1, 0⟩
+
+instance : has_zero float := ⟨mk ⟨0, 0⟩⟩
+instance : has_one float := ⟨mk ⟨1, 0⟩⟩
+instance : inhabited float := ⟨0⟩
+
 instance : comm_semiring 𝔽 := {
-  zero := ⟦⟨0, 0⟩⟧,
-  one := ⟦⟨1, 0⟩⟧,    
+  zero := 0,
+  one := 1,    
   add := quotient.lift₂ (λ x y, ⟦float_raw.add x y⟧) (λ a₁ a₂ b₁ b₂ h₁ h₂, quotient.sound $ to_rat.add h₁ h₂),
   mul := quotient.lift₂ (λ x y, ⟦float_raw.mul x y⟧) (λ a₁ a₂ b₁ b₂ h₁ h₂, quotient.sound $ to_rat.mul h₁ h₂),
   zero_add := λ x, quotient.induction_on x (λ a, quotient.sound $
@@ -260,7 +271,11 @@ instance : linear_ordered_comm_ring 𝔽 := {
   ..float.comm_ring 
 }
 
-instance : decidable_eq 𝔽
-| x y := quotient.rec_on_subsingleton₂ x y $ λ a b, decidable_of_iff' _ quotient.eq
+-- instance : decidable_eq 𝔽
+-- | x y := quotient.rec_on_subsingleton₂ x y $ λ a b, decidable_of_iff' _ quotient.eq
+
+-- instance decidable_lt (a b : float) : decidable (a < b) := by apply_instance
+-- instance decidable_le (a b : float) : decidable (a ≤ b) := by apply_instance
+-- instance decidable_eq (a b : float) : decidable (a = b) := by apply_instance
 
 end float
