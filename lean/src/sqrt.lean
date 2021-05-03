@@ -14,31 +14,16 @@ end float_raw
 
 namespace float 
 
-#check int.to_nat_mul
-#check int.to_nat_of_nonneg
-#check neg_lt_zero
-
-#eval nat.sqrt (3 * 2 ^ (2 * 1))
-#eval (nat.sqrt 3) * (2 ^ 1)
-
 -- lemmas
-lemma sqrt_useful_nat (n m : nat) : nat.sqrt (n * 2 ^ (2 * m)) = (nat.sqrt n) * 2 ^ m :=
+lemma to_rat.num_neg_exp (f : float_raw) (h : f.e < 0) : (to_rat f).num = f.m :=
 begin 
-  induction m with m h generalizing n,
-  { simp, },
-  { have h1 := h n,
-    have h2 := h (2 * n), },
-end 
+  simp [to_rat], suffices hsuff : (f.m * 2 ^ f.e : ℚ) = rat.mk f.m (2 ^ int.to_nat (-f.e)),
+  { rw hsuff, 
+    -- num_div_eq_of_coprime if we assume x.m is odd?
+    sorry, },
+  sorry,
+end  
 
-lemma sqrt_useful (n : int) (m : nat) : int.sqrt (n * ↑(2 ^ (2 * m))) = (int.sqrt n) * 2 ^ m :=
-begin 
-  cases n,
-  { simp only [int.sqrt], simp, sorry, },
-  { simp only [int.sqrt], iterate 2 { rw int.to_nat_zero_of_neg, },
-    { simp [nat.sqrt], },
-    { exact int.neg_succ_lt_zero _, },
-    { rw [int.neg_succ_mul_coe_nat, ←int.coe_nat_mul, neg_lt_zero, int.coe_nat_pos], simp, }, }
-end 
 
 lemma to_rat.sqrt {x y : float_raw} (h : to_rat x = to_rat y) 
 : to_rat (float_raw.sqrt x) = to_rat (float_raw.sqrt y) :=
