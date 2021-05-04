@@ -188,7 +188,7 @@ begin
   simp [mk], apply quotient.sound, show to_rat _ = _, simp [to_rat, float_raw.mul],
 end 
 
--- All the lemmas to prove that 𝔽 is a `comm_semiring`. 
+-- Lemmas to prove that 𝔽 is a `comm_ring`. 
 
 variables (x y z : 𝔽)
 
@@ -211,114 +211,155 @@ begin
   simplify_add; apply_pow_rat_cast h; apply_pow_rat_cast h_1; try { apply_pow_rat_cast h_2, };
   simp [add_mul, mul_assoc, ←fpow_add (by norm_num : (2 : ℚ) ≠ 0), add_comm, add_assoc]; ring,
 end)
-  
-instance : comm_semiring 𝔽 := {
+
+protected lemma add_left_neg : -x + x = 0 := 
+quotient.induction_on x (λ a, quotient.sound $ by simplify_add; simplify_neg; simp)
+
+protected lemma mul_zero : x * 0 = 0 :=
+quotient.induction_on x (λ a, quotient.sound $ by simplify_mul; simp)
+
+protected lemma zero_mul : 0 * x = 0 :=
+quotient.induction_on x (λ a, quotient.sound $ by simplify_mul; simp)
+
+protected lemma mul_one : x * 1 = x :=
+quotient.induction_on x (λ a, quotient.sound $ by simplify_mul; simp)
+
+protected lemma one_mul : 1 * x = x :=
+quotient.induction_on x (λ a, quotient.sound $ by simplify_mul; simp)
+
+protected lemma mul_comm : x * y = y * x :=
+quotient.induction_on₂ x y (λ a b, quotient.sound $
+begin 
+  simplify_mul, simp [fpow_add (by norm_num : (2 : ℚ) ≠ 0)], ring,
+end)
+
+protected lemma mul_assoc : x * y * z = x * (y * z) :=
+quotient.induction_on₃ x y z (λ a b c, quotient.sound $
+begin 
+  simplify_mul, simp [fpow_add (by norm_num : (2 : ℚ) ≠ 0)], ring,
+end)
+
+protected lemma left_distrib : x * (y + z) = (x * y) + (x * z) := 
+quotient.induction_on₃ x y z (λ a b c, quotient.sound $
+begin 
+  simplify_mul; simplify_add; apply_pow_rat_cast h; apply_pow_rat_cast h_1;
+  simp [add_mul, mul_add, ←fpow_add (by norm_num : (2 : ℚ) ≠ 0)]; ring!,
+  { left, ring, },
+  { replace h_1 := (add_le_add_iff_left a.e).1 (le_of_not_le h_1),
+    simp [le_antisymm h h_1], left, ring, },
+  { replace h_1 := (add_le_add_iff_left a.e).1 h_1,
+    simp [le_antisymm (le_of_not_le h) h_1], left, ring, },
+  { left, ring, },
+end)
+
+protected lemma right_distrib : (x + y) * z = (x * z) + (y * z) := 
+quotient.induction_on₃ x y z (λ a b c, quotient.sound $
+begin 
+  simplify_mul; simplify_add; apply_pow_rat_cast h; apply_pow_rat_cast h_1;
+  simp [add_mul, mul_add, ←fpow_add (by norm_num : (2 : ℚ) ≠ 0)]; ring!,
+  { left, ring, },
+  { replace h_1 := (add_le_add_iff_right c.e).1 (le_of_not_le h_1),
+    simp [le_antisymm h h_1], left, ring, },
+  { replace h_1 := (add_le_add_iff_right c.e).1 h_1,
+    simp [le_antisymm (le_of_not_le h) h_1], left, ring, },
+  { left, ring, },
+end)
+
+instance : comm_ring 𝔽 := {
   zero := 0,
-  one := 1,    
-  add := add,
-  mul := mul,
+  one := 1,
+  neg := float.neg,    
+  add := float.add,
+  mul := float.mul,
   add_zero := float.add_zero, 
   zero_add := float.zero_add, 
   add_comm := float.add_comm, 
   add_assoc := float.add_assoc,
-  zero_mul := λ x, quotient.induction_on x (λ a, quotient.sound $
-    begin 
-      simplify_mul; simp,
-    end), 
-  mul_zero := λ x, quotient.induction_on x (λ a, quotient.sound $
-    begin 
-      simplify_mul; simp,
-    end), 
-  one_mul := λ x, quotient.induction_on x (λ a, quotient.sound $
-    begin 
-      simplify_mul; simp,
-    end), 
-  mul_one := λ x, quotient.induction_on x (λ a, quotient.sound $
-    begin 
-      simplify_mul; simp,
-    end), 
-  mul_comm := λ x y, quotient.induction_on₂ x y (λ a b, quotient.sound $
-    begin 
-      simplify_mul, simp [fpow_add (by norm_num : (2 : ℚ) ≠ 0)], ring,
-    end),
-  mul_assoc := λ x y z, quotient.induction_on₃ x y z (λ a b c, quotient.sound $
-    begin 
-      simplify_mul, simp [fpow_add (by norm_num : (2 : ℚ) ≠ 0)], ring,
-    end),
-  left_distrib := λ x y z, quotient.induction_on₃ x y z (λ a b c, quotient.sound $
-    begin 
-      simplify_mul; simplify_add; apply_pow_rat_cast h; apply_pow_rat_cast h_1;
-      simp [add_mul, mul_add, ←fpow_add (by norm_num : (2 : ℚ) ≠ 0)]; ring!,
-      { left, ring, },
-      { replace h_1 := (add_le_add_iff_left a.e).1 (le_of_not_le h_1),
-        simp [le_antisymm h h_1], left, ring, },
-      { replace h_1 := (add_le_add_iff_left a.e).1 h_1,
-        simp [le_antisymm (le_of_not_le h) h_1], left, ring, },
-      { left, ring, },
-    end),
-  right_distrib := λ x y z, quotient.induction_on₃ x y z (λ a b c, quotient.sound $
-    begin 
-      simplify_mul; simplify_add; apply_pow_rat_cast h; apply_pow_rat_cast h_1;
-      simp [add_mul, mul_add, ←fpow_add (by norm_num : (2 : ℚ) ≠ 0)]; ring!,
-      { left, ring, },
-      { replace h_1 := (add_le_add_iff_right c.e).1 (le_of_not_le h_1),
-        simp [le_antisymm h h_1], left, ring, },
-      { replace h_1 := (add_le_add_iff_right c.e).1 h_1,
-        simp [le_antisymm (le_of_not_le h) h_1], left, ring, },
-      { left, ring, },
-    end),
+  add_left_neg := float.add_left_neg,
+  mul_one := float.mul_one, 
+  one_mul := float.one_mul, 
+  mul_comm := float.mul_comm,
+  mul_assoc := float.mul_assoc,
+  left_distrib := float.left_distrib,
+  right_distrib := float.right_distrib,
 }
 
-instance : comm_ring 𝔽 := {
-  neg := neg,
-  add_left_neg := λ x, 
-    begin 
-      apply quotient.induction_on x, intros a, apply quotient.sound,
-      simplify_neg; simplify_add; simp,
-    end, 
-  ..float.comm_semiring
-}
+-- Lemmas to prove that 𝔽 is a `linear_ordered_comm_ring`. 
 
+@[simp] lemma eval_add (x y : 𝔽) : eval (x + y) = (eval x) + (eval y) :=
+begin 
+  apply quotient.induction_on₂ x y, intros a b, show to_rat _ = to_rat _ + to_rat _, 
+  simplify_add; apply_pow_rat_cast h; 
+  simp [add_mul, mul_assoc, ←fpow_add (by norm_num : (2 : ℚ) ≠ 0)], ring,
+end
+
+@[simp] lemma eval_mul (x y : 𝔽) : eval (x * y) = (eval x) * (eval y) :=
+begin 
+  apply quotient.induction_on₂ x y, intros a b, show to_rat _ = to_rat _ * to_rat _, 
+  simplify_mul, simp [fpow_add (by norm_num : (2 : ℚ) ≠ 0)], ring,
+end
+
+/-- Comparison of floats. -/
+def le : 𝔽 → 𝔽 → Prop := λ x y, eval x ≤ eval y
+def lt : 𝔽 → 𝔽 → Prop := λ x y, eval x < eval y
+
+instance : has_le 𝔽 := ⟨le⟩
+instance : has_lt 𝔽 := ⟨lt⟩
+
+protected lemma le_refl : x ≤ x := 
+quotient.induction_on x (λ a, rat.le_refl _)
+
+protected lemma le_trans : x ≤ y → y ≤ z → x ≤ z := 
+quotient.induction_on₃ x y z (λ a b c h1 h2, rat.le_trans h1 h2)
+
+protected lemma le_antisymm : x ≤ y → y ≤ x → x = y :=
+quotient.induction_on₂ x y (λ a b h1 h2, by apply quotient.sound; exact (rat.le_antisymm h1 h2))
+
+protected lemma add_le_add_left : x ≤ y → ∀ (c : 𝔽), c + x ≤ c + y :=
+begin 
+  apply quotient.induction_on₂ x y, intros a b h z, 
+  apply quotient.induction_on z, intros c,
+  show eval _ ≤ eval _, simp only [eval_add],
+  exact (rat.add_le_add_left.2 h),
+end
+
+protected lemma zero_le_one : (0 : 𝔽) ≤ 1 :=
+begin 
+  show to_rat _ ≤ to_rat _, simp [to_rat], push_cast, simp, linarith,
+end
+
+protected lemma mul_pos : 0 < x → 0 < y → 0 < x * y :=
+begin 
+  apply quotient.induction_on₂ x y, intros a b h1 h2,
+  show _ < eval _, simp only [eval_mul],
+  exact (mul_pos h1 h2),
+end
+
+protected lemma le_total : x ≤ y ∨ y ≤ x :=
+begin 
+  apply quotient.induction_on₂ x y, intros a b, exact (rat.le_total _ _),
+end
+
+protected lemma decidable_le : decidable (x ≤ y) := 
+rat.decidable_le (eval x) (eval y)
+
+protected lemma exists_pair_ne : ∃ (x y : 𝔽), x ≠ y :=
+begin 
+  use [⟦⟨0, 0⟩⟧, ⟦⟨1, 0⟩⟧], simp, show ¬(to_rat _ = to_rat _), 
+  intros hc, simp [to_rat] at hc, exact hc,
+end
 
 instance : linear_ordered_comm_ring 𝔽 := {
-  le := λ x y, eval x ≤ eval y,
-  le_refl := λ x, quotient.induction_on x (λ a, rat.le_refl _), 
-  le_trans := λ x y z, quotient.induction_on₃ x y z (λ a b c h1 h2, rat.le_trans h1 h2), 
-  le_antisymm := λ x y,
-    begin 
-      apply quotient.induction_on₂ x y, intros a b h1 h2,
-      apply quotient.sound, exact (rat.le_antisymm h1 h2), -- Why is apply needed here?
-    end,
-  add_le_add_left := λ x y, 
-    begin 
-      apply quotient.induction_on₂ x y, intros a b h z, 
-      apply quotient.induction_on z, intros c,
-      show eval _ ≤ eval _, simp only [eval_add],
-      exact (rat.add_le_add_left.2 h),
-    end,
-  zero_le_one := 
-    begin 
-      show to_rat _ ≤ to_rat _, simp [to_rat], push_cast, dsimp, linarith,
-    end, 
-  mul_pos := λ x y,
-    begin 
-      apply quotient.induction_on₂ x y, intros a b h1 h2,
-      show _ < eval _, simp only [eval_mul],
-      exact (mul_pos h1 h2),
-    end, 
-  le_total := λ x y, 
-    begin 
-      apply quotient.induction_on₂ x y, intros a b, exact (rat.le_total _ _),
-    end, 
-  decidable_le := λ x y,
-    begin
-      show decidable (eval _ ≤ eval _), exact (rat.decidable_le _ _),
-    end,  
-  exists_pair_ne := 
-    begin 
-      use [⟦⟨0, 0⟩⟧, ⟦⟨1, 0⟩⟧], simp, show ¬(to_rat _ = to_rat _), 
-      intros hc, simp [to_rat] at hc, exact hc,
-    end,
+  le := float.le,
+  le_refl := float.le_refl, 
+  le_trans := float.le_trans, 
+  le_antisymm := float.le_antisymm,
+  add_le_add_left := float.add_le_add_left,
+  zero_le_one := float.zero_le_one, 
+  mul_pos := float.mul_pos, 
+  le_total := float.le_total, 
+  decidable_le := float.decidable_le,
+  exists_pair_ne := float.exists_pair_ne,
   ..float.comm_ring 
 }
 
