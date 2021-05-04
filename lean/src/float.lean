@@ -22,9 +22,14 @@ def mul (x y : float_raw) : float_raw :=
 
 end float_raw
 
--- To rational number properties.
+-- Transforming floats to rational numbers.
 
 def to_rat : float_raw → ℚ := λ x, x.m * 2 ^ x.e
+
+-- Some tactics to make the proofs shorter.
+
+namespace tactic 
+namespace interactive
 
 -- TODO: Move
 lemma pow_rat_cast (x : ℤ) {y : ℤ} (hy : 0 ≤ y) : ((x ^ int.to_nat y) : ℚ) = (x : ℚ) ^ (y : ℤ) :=
@@ -32,15 +37,10 @@ begin
   lift y to ℕ using hy, rw [int.to_nat_coe_nat], norm_num,
 end 
 
--- Some tactics.
-
 open tactic
 open interactive (parse)
 open interactive.types
 open lean.parser (ident)
-
-namespace tactic 
-namespace interactive
 
 meta def apply_pow_rat_cast (h : parse ident) : tactic unit := do 
   e ← get_local h,
@@ -70,30 +70,31 @@ meta def simplify_mul : tactic unit := do
 end interactive
 end tactic
 
-lemma to_rat.neg {x y : float_raw} (h : to_rat x = to_rat y) 
+-- Properties of `to_rat`.
+
+namespace to_rat 
+
+lemma neg {x y : float_raw} (h : to_rat x = to_rat y) 
 : to_rat (float_raw.neg x) = to_rat (float_raw.neg y) :=
 begin 
   simp [float_raw.neg, to_rat] at *, dsimp,
   iterate 2 { rw [int.cast_neg, ←neg_mul_eq_neg_mul], }, rw h,
 end
 
-lemma to_rat.add {x y x' y' : float_raw} (h : to_rat x = to_rat y) (h' : to_rat x' = to_rat y')
+lemma add {x y x' y' : float_raw} (h : to_rat x = to_rat y) (h' : to_rat x' = to_rat y')
 : to_rat (float_raw.add x x') = to_rat (float_raw.add y y') :=
 begin 
   simp [float_raw.add, to_rat] at *, split_ifs; push_cast;
   iterate 2 { rw [add_mul], };
-  try { erw [pow_rat_cast 2 (sub_nonneg.2 h_1)], };
-  try { erw [pow_rat_cast 2 (sub_nonneg.2 (le_of_not_le h_1))], };
-  try { erw [pow_rat_cast 2 (sub_nonneg.2 h_2)], };
-  try { erw [pow_rat_cast 2 (sub_nonneg.2 (le_of_not_le h_2))], };
-  iterate 2 { erw [mul_assoc, ←fpow_add (by norm_num : (2 : ℚ) ≠ 0)], }; simp; 
-  try { rw [h, h']; ring, }; 
-  try { rw [h, ←h']; ring, }; 
-  try { rw [←h, h']; ring, }; 
-  try { rw [←h, ←h']; ring, },
+  apply_pow_rat_cast h_1; apply_pow_rat_cast h_2;
+  iterate 2 { erw [mul_assoc, ←fpow_add (by norm_num : (2 : ℚ) ≠ 0)], }; simp,
+  { rw [h, h']; ring, }, 
+  { rw [h, ←h']; ring, },
+  { rw [←h, h']; ring, }, 
+  { rw [←h, ←h']; ring, },
 end 
 
-lemma to_rat.mul {x y x' y' : float_raw} (h : to_rat x = to_rat y) (h' : to_rat x' = to_rat y')
+lemma mul {x y x' y' : float_raw} (h : to_rat x = to_rat y) (h' : to_rat x' = to_rat y')
 : to_rat (float_raw.mul x x') = to_rat (float_raw.mul y y') :=
 begin 
   simp [float_raw.mul, to_rat] at *, dsimp,
@@ -104,7 +105,9 @@ begin
   ... = ↑(y.m) * ↑(y'.m) * (2 ^ y.e * 2 ^ y'.e) : by ring,
 end 
 
--- Define floats as float_raw modulo to_rat.
+end to_rat 
+
+-- Define `float` as `float_raw` modulo `to_rat`.
 
 @[reducible] private def R : float_raw → float_raw → Prop := λ x y, to_rat x = to_rat y
 private lemma R.reflexive : reflexive R := λ x, by unfold R; exact eq.refl
@@ -116,48 +119,108 @@ instance float_raw.setoid : setoid float_raw := ⟨R, R.equivalence⟩
 
 def float : Type* := quotient float_raw.setoid
 
-local notation `𝔽` := float
+notation `𝔽` := float
 
-namespace float
+namespace float 
 
-def mk : ℤ × ℤ → 𝔽 := λ x, ⟦⟨x.1, x.2⟩⟧ 
+def mk : ℤ → ℤ → 𝔽 := λ m e, ⟦⟨m, e⟩⟧ 
 
-def mk2 : ℤ → ℤ → 𝔽 := λ x y, ⟦⟨x, y⟩⟧ 
+def of_int (n : ℤ) : float := mk n 0
 
 def eval : 𝔽 → ℚ := quotient.lift to_rat (λ a b h, h)
 
-def of_int (n : ℤ) : float := ⟦⟨n, 0⟩⟧
+def repr : 𝔽 → string := rat.repr ∘ eval
 
-@[irreducible] def zero := mk ⟨0, 0⟩
-@[irreducible] def one := mk ⟨1, 0⟩
+instance : has_repr 𝔽 := ⟨float.repr⟩
+instance : has_to_string 𝔽 := ⟨float.repr⟩
+meta instance : has_to_format 𝔽 := ⟨coe ∘ float.repr⟩
 
-instance : has_zero float := ⟨mk ⟨0, 0⟩⟩
-instance : has_one float := ⟨mk ⟨1, 0⟩⟩
+-- `float` is a linearly ordered commutative ring.
+
+instance : has_zero float := ⟨mk 0 0⟩
+instance : has_one float := ⟨mk 1 0⟩
 instance : inhabited float := ⟨0⟩
 
+@[simp] lemma mk_zero (e : ℤ) : mk 0 e = 0 := 
+begin 
+  apply quotient.sound, show to_rat _ = _, simp [to_rat],
+end
+
+/-- Negation of floats. -/
+def neg : 𝔽 → 𝔽 :=
+quotient.lift (λ x, ⟦float_raw.neg x⟧) (λ a b h, quotient.sound $ to_rat.neg h)
+
+instance : has_neg 𝔽 := ⟨neg⟩
+
+@[simp] lemma neg_def {m e : ℤ} 
+: - mk m e = mk (-m) e :=
+begin 
+  simp [mk], apply quotient.sound, show to_rat _ = _, simp [to_rat, float_raw.neg],
+end 
+
+/-- Addition of floats. -/
+def add : 𝔽 → 𝔽 → 𝔽 :=
+quotient.lift₂ (λ x y, ⟦float_raw.add x y⟧) (λ a₁ a₂ b₁ b₂ h₁ h₂, quotient.sound $ to_rat.add h₁ h₂)
+
+instance : has_add 𝔽 := ⟨add⟩
+
+@[simp] lemma add_def {m₁ m₂ e₁ e₂ : ℤ}
+: (mk m₁ e₁) + (mk m₂ e₂) =
+  if e₁ ≤ e₂ 
+  then mk (m₁ + m₂ * 2 ^ int.to_nat (e₂ - e₁)) e₁ 
+  else mk (m₂ + m₁ * 2 ^ int.to_nat (e₁ - e₂)) e₂ :=
+begin 
+  split_ifs, all_goals { 
+    simp [mk], apply quotient.sound, 
+    show to_rat _ = _, simp [to_rat, float_raw.add], 
+    split_ifs, refl, },
+end 
+
+/-- Multiplication of floats. -/
+def mul : 𝔽 → 𝔽 → 𝔽 :=
+quotient.lift₂ (λ x y, ⟦float_raw.mul x y⟧) (λ a₁ a₂ b₁ b₂ h₁ h₂, quotient.sound $ to_rat.mul h₁ h₂)
+
+instance : has_mul 𝔽 := ⟨mul⟩
+
+@[simp] lemma mul_def {m₁ m₂ e₁ e₂ : ℤ}
+: (mk m₁ e₁) * (mk m₂ e₂) = mk (m₁ * m₂) (e₁ + e₂) :=
+begin 
+  simp [mk], apply quotient.sound, show to_rat _ = _, simp [to_rat, float_raw.mul],
+end 
+
+-- All the lemmas to prove that 𝔽 is a `comm_semiring`. 
+
+variables (x y z : 𝔽)
+
+protected lemma add_zero : x + 0 = x :=
+quotient.induction_on x (λ a, quotient.sound $ by simplify_add; apply_pow_rat_cast h; simp)
+
+protected lemma zero_add : 0 + x = x :=
+quotient.induction_on x (λ a, quotient.sound $ by simplify_add; apply_pow_rat_cast h; simp)
+
+protected lemma add_comm : x + y = y + x :=
+quotient.induction_on₂ x y (λ a b, quotient.sound $ 
+begin 
+  simplify_add; apply_pow_rat_cast h; apply_pow_rat_cast h_1;
+  simp [add_mul, mul_assoc, ←fpow_add (by norm_num : (2 : ℚ) ≠ 0), add_comm],
+end)
+
+protected lemma add_assoc : x + y + z = x + (y + z) :=
+quotient.induction_on₃ x y z (λ a b c, quotient.sound $
+begin 
+  simplify_add; apply_pow_rat_cast h; apply_pow_rat_cast h_1; try { apply_pow_rat_cast h_2, };
+  simp [add_mul, mul_assoc, ←fpow_add (by norm_num : (2 : ℚ) ≠ 0), add_comm, add_assoc]; ring,
+end)
+  
 instance : comm_semiring 𝔽 := {
   zero := 0,
   one := 1,    
-  add := quotient.lift₂ (λ x y, ⟦float_raw.add x y⟧) (λ a₁ a₂ b₁ b₂ h₁ h₂, quotient.sound $ to_rat.add h₁ h₂),
-  mul := quotient.lift₂ (λ x y, ⟦float_raw.mul x y⟧) (λ a₁ a₂ b₁ b₂ h₁ h₂, quotient.sound $ to_rat.mul h₁ h₂),
-  zero_add := λ x, quotient.induction_on x (λ a, quotient.sound $
-    begin 
-      simplify_add; apply_pow_rat_cast h; simp,
-    end), 
-  add_zero := λ x, quotient.induction_on x (λ a, quotient.sound $
-    begin 
-      simplify_add; apply_pow_rat_cast h; simp,
-    end), 
-  add_assoc := λ x y z, quotient.induction_on₃ x y z (λ a b c, quotient.sound $
-    begin 
-      simplify_add; apply_pow_rat_cast h; apply_pow_rat_cast h_1; try { apply_pow_rat_cast h_2, };
-      simp [add_mul, mul_assoc, ←fpow_add (by norm_num : (2 : ℚ) ≠ 0), add_comm, add_assoc]; ring,
-    end),
-  add_comm := λ x y, quotient.induction_on₂ x y (λ a b, quotient.sound $
-    begin 
-      simplify_add; apply_pow_rat_cast h; apply_pow_rat_cast h_1;
-      simp [add_mul, mul_assoc, ←fpow_add (by norm_num : (2 : ℚ) ≠ 0), add_comm],
-    end), 
+  add := add,
+  mul := mul,
+  add_zero := float.add_zero, 
+  zero_add := float.zero_add, 
+  add_comm := float.add_comm, 
+  add_assoc := float.add_assoc,
   zero_mul := λ x, quotient.induction_on x (λ a, quotient.sound $
     begin 
       simplify_mul; simp,
@@ -207,7 +270,7 @@ instance : comm_semiring 𝔽 := {
 }
 
 instance : comm_ring 𝔽 := {
-  neg := quotient.lift (λ x, ⟦float_raw.neg x⟧) (λ a b h, quotient.sound $ to_rat.neg h),
+  neg := neg,
   add_left_neg := λ x, 
     begin 
       apply quotient.induction_on x, intros a, apply quotient.sound,
@@ -216,18 +279,6 @@ instance : comm_ring 𝔽 := {
   ..float.comm_semiring
 }
 
-lemma eval_add (x y : 𝔽) : eval (x + y) = (eval x) + (eval y) :=
-begin 
-  apply quotient.induction_on₂ x y, intros a b, show to_rat _ = to_rat _ + to_rat _, 
-  simplify_add; apply_pow_rat_cast h; 
-  simp [add_mul, mul_assoc, ←fpow_add (by norm_num : (2 : ℚ) ≠ 0)], ring,
-end
-
-lemma eval_mul (x y : 𝔽) : eval (x * y) = (eval x) * (eval y) :=
-begin 
-  apply quotient.induction_on₂ x y, intros a b, show to_rat _ = to_rat _ * to_rat _, 
-  simplify_mul, simp [fpow_add (by norm_num : (2 : ℚ) ≠ 0)], ring,
-end
 
 instance : linear_ordered_comm_ring 𝔽 := {
   le := λ x y, eval x ≤ eval y,
@@ -270,12 +321,5 @@ instance : linear_ordered_comm_ring 𝔽 := {
     end,
   ..float.comm_ring 
 }
-
--- instance : decidable_eq 𝔽
--- | x y := quotient.rec_on_subsingleton₂ x y $ λ a b, decidable_of_iff' _ quotient.eq
-
--- instance decidable_lt (a b : float) : decidable (a < b) := by apply_instance
--- instance decidable_le (a b : float) : decidable (a ≤ b) := by apply_instance
--- instance decidable_eq (a b : float) : decidable (a = b) := by apply_instance
 
 end float
