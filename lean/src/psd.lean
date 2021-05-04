@@ -10,7 +10,7 @@ import linear_algebra.eigenspace
 
 variables {γ : Type*} [fintype γ] 
 variables {μ : Type*} [fintype μ]
-variables {R : Type*}
+variables {R : Type*} 
 
 open_locale big_operators
 
@@ -21,6 +21,15 @@ namespace matrix
 def symmetric (M : matrix γ γ R) : Prop :=
 ∀ i j, M i j = M j i
 
+lemma symmetric_sum 
+  [ring R]
+  {A B : matrix γ γ R}
+  (hA : symmetric A) (hB : symmetric B)
+: symmetric (A + B) :=
+begin
+  intros i j, simp, rw [hA i j, hB i j],
+end 
+
 -- Properties of the dot product.
 
 variable [linear_ordered_comm_ring R]
@@ -30,7 +39,7 @@ begin
   simp [dot_product], apply finset.sum_nonneg, intros x hx, exact mul_self_nonneg (v x),
 end
 
-lemma dot_product_self_eq_zero_iff (v : γ → ℝ) : dot_product v v = 0 ↔ v = 0 :=
+lemma dot_product_self_eq_zero_iff (v : γ → R) : dot_product v v = 0 ↔ v = 0 :=
 begin 
   have hsumz := finset.sum_eq_zero_iff_of_nonneg (λ x hx, mul_self_nonneg (v x)), split,
   { intros hdp, ext x,
@@ -40,7 +49,7 @@ begin
     erw [congr_fun hvz x], simp, }
 end  
 
-lemma dot_product_self_pos_of_nonzero (v : γ → ℝ) (hvnz : v ≠ 0) : dot_product v v > 0 :=
+lemma dot_product_self_pos_of_nonzero (v : γ → R) (hvnz : v ≠ 0) : dot_product v v > 0 :=
 begin
   have h1 := dot_product_self_nonneg v,
   have h2 := ne_comm.1 ((not_iff_not_of_iff (dot_product_self_eq_zero_iff v)).2 hvnz),
@@ -86,11 +95,21 @@ def pos_semidef (M : matrix γ γ R) (h : symmetric M) : Prop :=
 ∀ (v : γ → R), dot_product v (mul_vec M v) ≥ 0
 
 def nonneg_eigenvalues (M : matrix γ γ R) (h : symmetric M) : Prop :=
-∀ r x, has_eigenvector (mul_vec_lin M) r x → r ≥ 0
+∀ r, has_eigenvalue (mul_vec_lin M) r → r ≥ 0
 
 theorem pos_semidef_of_cholesky_decomposition (M : matrix γ γ R) (h : symmetric M) 
 : @cholesky_decomposition γ _ μ _ R _ M h → pos_semidef M h :=
 begin 
   rintros ⟨L, hL⟩ v, rw hL, rw [dot_product_transpose],
   exact dot_product_self_nonneg _,
+end 
+
+theorem pos_semidef_sum 
+  (A B : matrix γ γ R) 
+  (hAsymm : symmetric A) (hBsymm : symmetric B)
+  (hApsd : pos_semidef A hAsymm) (hBpsd : pos_semidef B hBsymm)
+: pos_semidef (A + B) (symmetric_sum hAsymm hBsymm) :=
+begin
+  intros v, rw [matrix.add_mul_vec, dot_product_add],
+  exact add_nonneg (hApsd v) (hBpsd v),
 end 
