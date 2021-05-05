@@ -109,7 +109,7 @@ end to_rat
 
 -- Define `float` as `float_raw` modulo `to_rat`.
 
-@[reducible] private def R : float_raw → float_raw → Prop := λ x y, to_rat x = to_rat y
+@[reducible] private def R (x y : float_raw) : Prop := to_rat x = to_rat y
 private lemma R.reflexive : reflexive R := λ x, by unfold R; exact eq.refl
 private lemma R.symmetric : symmetric R := λ x y, by unfold R; exact eq.symm
 private lemma R.transitive : transitive R := λ x y z, by unfold R; exact eq.trans
@@ -123,7 +123,7 @@ notation `𝔽` := float
 
 namespace float 
 
-def mk : ℤ → ℤ → 𝔽 := λ m e, ⟦⟨m, e⟩⟧ 
+def mk  (m e : ℤ) : 𝔽 := ⟦⟨m, e⟩⟧ 
 
 def of_int (n : ℤ) : float := mk n 0
 
@@ -286,6 +286,8 @@ instance : comm_ring 𝔽 := {
 
 -- Lemmas to prove that 𝔽 is a `linear_ordered_comm_ring`. 
 
+@[simp] lemma eval_mk {m e : ℤ} : eval (mk m e) = m * 2 ^ e := rfl
+
 @[simp] lemma eval_add (x y : 𝔽) : eval (x + y) = (eval x) + (eval y) :=
 begin 
   apply quotient.induction_on₂ x y, intros a b, show to_rat _ = to_rat _ + to_rat _, 
@@ -340,8 +342,11 @@ begin
   apply quotient.induction_on₂ x y, intros a b, exact (rat.le_total _ _),
 end
 
-protected lemma decidable_le : decidable (x ≤ y) := 
-rat.decidable_le (eval x) (eval y)
+-- protected lemma decidable_le : decidable (x ≤ y) := 
+-- rat.decidable_le (eval x) (eval y)
+
+instance decidable_le : decidable_rel ((≤) : 𝔽 → 𝔽 → Prop) :=
+λ a b, rat.decidable_le (eval a) (eval b)
 
 protected lemma exists_pair_ne : ∃ (x y : 𝔽), x ≠ y :=
 begin 
