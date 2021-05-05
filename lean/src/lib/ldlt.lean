@@ -2,6 +2,7 @@ import data.rat.basic
 import data.matrix.basic
 import tactic.linarith
 import float.basic
+import float.div
 
 variables {k m n : nat}
 
@@ -93,9 +94,9 @@ else
   let i' : fin n := ⟨i.val + 1, lt_of_not_ge' h⟩ in
   decompose_aux i' A L' D'
 
-variables (n) (h : 0 < n) 
+variables (n)
 
-meta def decompose (A : matrix (fin n) (fin n) R) 
+meta def decompose (h : 0 < n) (A : matrix (fin n) (fin n) R)  
 : (matrix (fin n) (fin n) R) × (matrix (fin n) (fin n) R) :=
 let D : matrix (fin n) (fin n) R := λ x y, 0 in 
 let L : matrix (fin n) (fin n) R := λ x y, 0 in 
@@ -111,15 +112,21 @@ decompose 2 (by linarith : 0 < 2) A
 #eval let LD := decompose_2 M in (LD.1 * LD.2 * LD.1.transpose) 1 0 -- 1/2
 #eval let LD := decompose_2 M in (LD.1 * LD.2 * LD.1.transpose) 1 1 -- 1
 
--- Sort of Hilbert matrix.
-def H : matrix (fin 100) (fin 100) float 
-| ⟨i, _⟩ ⟨j, _⟩ := float.mk 0 (i + j - 1)
 
-meta def decompose_100 (A : matrix (fin 100) (fin 100) R) 
-: (matrix (fin 100) (fin 100) R) × (matrix (fin 100) (fin 100) R) :=
-decompose 100 (by linarith : 0 < 100) A
+-- More tests.
+@[reducible] def N := 3
 
-set_option timeout 1000000
+lemma hN : 0 < N := by { unfold N, linarith, }
 
-#eval let LD := decompose_100 H in (LD.1 * LD.2 * LD.1.transpose) 0 0 -- 1
+def H : matrix (fin N) (fin N) rat 
+--| ⟨i, _⟩ ⟨j, _⟩ := float.mk 1 0
+| ⟨i, _⟩ ⟨j, _⟩ := 1
+
+meta def decompose_N (A : matrix (fin N) (fin N) R) 
+: (matrix (fin N) (fin N) R) × (matrix (fin N) (fin N) R) :=
+decompose N hN A
+
+--set_option timeout 1000000
+
+#eval let LD := decompose_N H in (LD.1 * LD.2 * LD.1.transpose) 0 0
 
