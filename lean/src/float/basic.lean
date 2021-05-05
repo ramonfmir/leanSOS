@@ -288,6 +288,12 @@ instance : comm_ring 𝔽 := {
 
 @[simp] lemma eval_mk {m e : ℤ} : eval (mk m e) = m * 2 ^ e := rfl
 
+@[simp] lemma eval_neg (x : 𝔽) : eval (-x) = -(eval x) :=
+begin 
+  apply quotient.induction_on x, intros a, show to_rat _ = _,
+  simplify_neg, simp [eval, to_rat],
+end 
+
 @[simp] lemma eval_add (x y : 𝔽) : eval (x + y) = (eval x) + (eval y) :=
 begin 
   apply quotient.induction_on₂ x y, intros a b, show to_rat _ = to_rat _ + to_rat _, 
@@ -300,6 +306,12 @@ begin
   apply quotient.induction_on₂ x y, intros a b, show to_rat _ = to_rat _ * to_rat _, 
   simplify_mul, simp [fpow_add (by norm_num : (2 : ℚ) ≠ 0)], ring,
 end
+
+@[simp] lemma eval_sub (x y : 𝔽) : eval (x - y) = (eval x) - (eval y) :=
+begin
+  show eval (x + (-y)) = (eval x) + (-(eval y)), 
+  rw [eval_add x (-y), eval_neg y], 
+end 
 
 /-- Comparison of floats. -/
 def le : 𝔽 → 𝔽 → Prop := λ x y, eval x ≤ eval y
