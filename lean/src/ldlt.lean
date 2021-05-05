@@ -47,8 +47,8 @@ let X := LDLT_aux 0 A in ⟨lower_triangle A, get_diagonal A⟩
 
 def M : matrix (fin 2) (fin 2) ℚ 
 | ⟨0, _⟩ ⟨0, _⟩ := 1
-| ⟨0, _⟩ ⟨1, _⟩ := 0.5
-| ⟨1, _⟩ ⟨0, _⟩ := 0.5
+| ⟨0, _⟩ ⟨1, _⟩ := 1/2
+| ⟨1, _⟩ ⟨0, _⟩ := 1/2
 | _      _      := 1 
 
 #eval ((LDLT M).1 * (LDLT M).2 * (LDLT M).1.transpose) 1 1 -- 5/4 ==> Not good 
@@ -90,17 +90,19 @@ else
   let i' : fin n := ⟨i.val + 1, lt_of_not_ge' h⟩ in
   decompose_aux i' A L' D'
 
-meta def decompose (h : 0 < n) (A : matrix (fin n) (fin n) rat) 
+variables (n) (h : 0 < n) 
+
+meta def decompose (A : matrix (fin n) (fin n) rat) 
 : (matrix (fin n) (fin n) rat) × (matrix (fin n) (fin n) rat) :=
 let D : matrix (fin n) (fin n) rat := λ x y, 0 in 
 let L : matrix (fin n) (fin n) rat := λ x y, 0 in 
 decompose_aux ⟨0, h⟩ A L D
 
-meta def dec (A : matrix (fin 2) (fin 2) rat) 
+meta def decompose_2x2 (A : matrix (fin 2) (fin 2) rat) 
 : (matrix (fin 2) (fin 2) rat) × (matrix (fin 2) (fin 2) rat) :=
-@decompose 2 (by linarith : 0 < 2) A
+decompose 2 (by linarith : 0 < 2) A
 
-#eval ((dec M).1 * (dec M).2 * (dec M).1.transpose) 0 0 -- 1
-#eval ((dec M).1 * (dec M).2 * (dec M).1.transpose) 1 0 -- 1/2
-#eval ((dec M).1 * (dec M).2 * (dec M).1.transpose) 0 1 -- 1/2
-#eval ((dec M).1 * (dec M).2 * (dec M).1.transpose) 1 1 -- 1
+#eval let LD := decompose_2x2 M in (LD.1 * LD.2 * LD.1.transpose) 0 0 -- 1
+#eval let LD := decompose_2x2 M in (LD.1 * LD.2 * LD.1.transpose) 0 1 -- 1/2
+#eval let LD := decompose_2x2 M in (LD.1 * LD.2 * LD.1.transpose) 1 0 -- 1/2
+#eval let LD := decompose_2x2 M in (LD.1 * LD.2 * LD.1.transpose) 1 1 -- 1
