@@ -6,7 +6,7 @@ import system.io
 import tactic.ring
 import data.real.basic
 import data.mv_polynomial.basic
-import .parser .poly .float
+import util.parser lib.poly float.basic
 
 open mv_polynomial poly
 

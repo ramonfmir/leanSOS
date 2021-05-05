@@ -7,7 +7,7 @@ import tactic.ring
 import tactic.show_term
 import data.real.basic
 import data.mv_polynomial.basic
-import .poly .psd .sos .float
+import lib.poly lib.psd .sos float.basic
 
 open mv_polynomial poly
 

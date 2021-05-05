@@ -1,7 +1,7 @@
 import data.int.sqrt
 import data.int.parity
 import data.rat.sqrt
-import .float
+import float.basic
 
 namespace float_raw
 

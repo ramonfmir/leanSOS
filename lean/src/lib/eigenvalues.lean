@@ -1,4 +1,4 @@
-import .psd .float
+import lib.psd float.basic
 
 variables {n m : nat}
 

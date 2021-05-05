@@ -3,7 +3,7 @@
 -/
 import data.mv_polynomial.basic
 import data.matrix.basic 
-import .psd
+import lib.psd
 
 open mv_polynomial matrix
 

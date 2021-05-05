@@ -1,6 +1,7 @@
 import data.rat.basic
 import data.matrix.basic
 import tactic.linarith
+import float.basic
 
 variables {k m n : nat}
 
@@ -55,17 +56,19 @@ def M : matrix (fin 2) (fin 2) ℚ
 
 -- New definition.
 
+variables {R : Type*} [linear_ordered_ring R] [has_div R]
+
 meta def decompose_aux_2
 : fin n → 
   fin n → 
-  matrix (fin n) (fin n) rat → 
-  matrix (fin n) (fin n) rat → 
-  matrix (fin n) (fin n) rat →
-  (matrix (fin n) (fin n) rat)
+  matrix (fin n) (fin n) R → 
+  matrix (fin n) (fin n) R → 
+  matrix (fin n) (fin n) R →
+  (matrix (fin n) (fin n) R)
 | j i A L D := 
-let S : fin i → rat := 
+let S : fin i → R := 
   λ a, let a' := fin.cast_le i.2 a in (L j a') * (L i a') * (D a' a') in
-let L' : matrix (fin n) (fin n) rat := 
+let L' : matrix (fin n) (fin n) R := 
   λ a b, if (a = j) && (b = i) then ((A j i) - finset.univ.sum S) / (D i i) else L a b in
 if h : j.1 + 1 ≥ n
 then L' 
@@ -73,16 +76,16 @@ else decompose_aux_2 ⟨j.val + 1, lt_of_not_ge' h⟩ i A L' D
 
 meta def decompose_aux
 : fin n → 
-  matrix (fin n) (fin n) rat → 
-  matrix (fin n) (fin n) rat → 
-  matrix (fin n) (fin n) rat →
-  (matrix (fin n) (fin n) rat) × (matrix (fin n) (fin n) rat)
+  matrix (fin n) (fin n) R → 
+  matrix (fin n) (fin n) R → 
+  matrix (fin n) (fin n) R →
+  (matrix (fin n) (fin n) R) × (matrix (fin n) (fin n) R)
 | i A L D := 
-let S : fin i → rat := 
+let S : fin i → R := 
   λ a, let a' := fin.cast_le i.2 a in (L i a') * (L i a') * (D a' a') in 
-let D' : matrix (fin n) (fin n) rat := 
+let D' : matrix (fin n) (fin n) R := 
   λ a b, if (a = i) && (b = i) then (A i i) - finset.univ.sum S else D a b in 
-let L' : matrix (fin n) (fin n) rat := 
+let L' : matrix (fin n) (fin n) R := 
   decompose_aux_2 i i A L D' in
 if h : i.1 + 1 ≥ n
 then ⟨L', D'⟩ 
@@ -92,17 +95,31 @@ else
 
 variables (n) (h : 0 < n) 
 
-meta def decompose (A : matrix (fin n) (fin n) rat) 
-: (matrix (fin n) (fin n) rat) × (matrix (fin n) (fin n) rat) :=
-let D : matrix (fin n) (fin n) rat := λ x y, 0 in 
-let L : matrix (fin n) (fin n) rat := λ x y, 0 in 
+meta def decompose (A : matrix (fin n) (fin n) R) 
+: (matrix (fin n) (fin n) R) × (matrix (fin n) (fin n) R) :=
+let D : matrix (fin n) (fin n) R := λ x y, 0 in 
+let L : matrix (fin n) (fin n) R := λ x y, 0 in 
 decompose_aux ⟨0, h⟩ A L D
 
-meta def decompose_2x2 (A : matrix (fin 2) (fin 2) rat) 
-: (matrix (fin 2) (fin 2) rat) × (matrix (fin 2) (fin 2) rat) :=
+-- TODO: Fix this. Make a tactic.
+meta def decompose_2 (A : matrix (fin 2) (fin 2) R) 
+: (matrix (fin 2) (fin 2) R) × (matrix (fin 2) (fin 2) R) :=
 decompose 2 (by linarith : 0 < 2) A
 
-#eval let LD := decompose_2x2 M in (LD.1 * LD.2 * LD.1.transpose) 0 0 -- 1
-#eval let LD := decompose_2x2 M in (LD.1 * LD.2 * LD.1.transpose) 0 1 -- 1/2
-#eval let LD := decompose_2x2 M in (LD.1 * LD.2 * LD.1.transpose) 1 0 -- 1/2
-#eval let LD := decompose_2x2 M in (LD.1 * LD.2 * LD.1.transpose) 1 1 -- 1
+#eval let LD := decompose_2 M in (LD.1 * LD.2 * LD.1.transpose) 0 0 -- 1
+#eval let LD := decompose_2 M in (LD.1 * LD.2 * LD.1.transpose) 0 1 -- 1/2
+#eval let LD := decompose_2 M in (LD.1 * LD.2 * LD.1.transpose) 1 0 -- 1/2
+#eval let LD := decompose_2 M in (LD.1 * LD.2 * LD.1.transpose) 1 1 -- 1
+
+-- Sort of Hilbert matrix.
+def H : matrix (fin 100) (fin 100) float 
+| ⟨i, _⟩ ⟨j, _⟩ := float.mk 0 (i + j - 1)
+
+meta def decompose_100 (A : matrix (fin 100) (fin 100) R) 
+: (matrix (fin 100) (fin 100) R) × (matrix (fin 100) (fin 100) R) :=
+decompose 100 (by linarith : 0 < 100) A
+
+set_option timeout 1000000
+
+#eval let LD := decompose_100 H in (LD.1 * LD.2 * LD.1.transpose) 0 0 -- 1
+

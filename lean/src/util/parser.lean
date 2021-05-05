@@ -3,7 +3,7 @@ import data.real.basic
 import data.mv_polynomial.basic
 import tactic.fin_cases
 
-import .float
+import float.basic
 
 open lean.parser tactic interactive
 
