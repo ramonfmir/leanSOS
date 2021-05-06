@@ -24,7 +24,7 @@ end float_raw
 
 -- Transforming floats to rational numbers.
 
-def to_rat : float_raw → ℚ := λ x, x.m * 2 ^ x.e
+@[reducible] def to_rat : float_raw → ℚ := λ x, x.m * 2 ^ x.e
 
 -- Some tactics to make the proofs shorter.
 
@@ -123,16 +123,17 @@ notation `𝔽` := float
 
 namespace float 
 
-def mk  (m e : ℤ) : 𝔽 := ⟦⟨m, e⟩⟧ 
+def mk (m e : ℤ) : 𝔽 := quot.mk R ⟨m, e⟩
 
 def of_int (n : ℤ) : float := mk n 0
 
-def eval : 𝔽 → ℚ := quotient.lift to_rat (λ a b h, h)
+@[reducible] def eval : 𝔽 → ℚ := quot.lift to_rat (λ a b h, h)
 
-def repr : 𝔽 → string := rat.repr ∘ eval
+meta def repr : 𝔽 → string := 
+λ x, let x' := quot.unquot x in int.repr x'.m ++ "," ++ int.repr x'.e
 
-instance : has_repr 𝔽 := ⟨float.repr⟩
-instance : has_to_string 𝔽 := ⟨float.repr⟩
+meta instance : has_repr 𝔽 := ⟨float.repr⟩
+meta instance : has_to_string 𝔽 := ⟨float.repr⟩
 meta instance : has_to_format 𝔽 := ⟨coe ∘ float.repr⟩
 
 -- `float` is a linearly ordered commutative ring.
@@ -290,7 +291,7 @@ instance : comm_ring 𝔽 := {
 
 @[simp] lemma eval_neg (x : 𝔽) : eval (-x) = -(eval x) :=
 begin 
-  apply quotient.induction_on x, intros a, show to_rat _ = _,
+  apply quotient.induction_on x, intros a, show to_rat _ = -to_rat _,
   simplify_neg, simp [eval, to_rat],
 end 
 
