@@ -45,3 +45,5 @@ set_option profiler true
 --#eval float.mk 12345789101112 (-20) / float.mk (-12345789101112) (-15) 
 #eval rat.mk 12345789101112 (2 ^ 100) + rat.mk (-12345789101112) (2 ^ 7898) 
 #eval float.mk 12345789101112 (-100) + float.mk (-12345789101112) (-7898) 
+
+-- Still not quick enough, rounding directly float_raw?

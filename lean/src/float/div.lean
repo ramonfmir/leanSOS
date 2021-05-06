@@ -11,7 +11,18 @@ round_down prec (eval x / eval y)
 def divr (x y : 𝔽) : 𝔽 :=
 round_up prec (eval x / eval y)
 
-instance : has_div 𝔽 := ⟨divl 10⟩ -- Fixed precision for now 
+meta def div_rat' (x y : 𝔽) : ℚ :=
+let x' := quot.unquot x, y' := quot.unquot y in (x'.m * y'.m) * 2 ^ (x'.e - y'.e)
+
+meta def divl' (x y : 𝔽) : 𝔽 :=
+round_down prec (div_rat' x y)
+
+meta def divr' (x y : 𝔽) : 𝔽 :=
+round_up prec (div_rat' x y)
+
+--instance : has_div 𝔽 := ⟨divl 10⟩ -- Fixed precision for now 
+meta instance : has_div 𝔽 := ⟨divl' 10⟩ -- Fixed precision for now 
+
 
 -- Lemmas.
 
