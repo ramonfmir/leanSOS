@@ -12,7 +12,10 @@ def divr (x y : 𝔽) : 𝔽 :=
 round_up prec (eval x / eval y)
 
 meta def div_rat' (x y : 𝔽) : ℚ :=
-let x' := quot.unquot x, y' := quot.unquot y in (x'.m * y'.m) * 2 ^ (x'.e - y'.e)
+let x' := quot.unquot x, y' := quot.unquot y in 
+if x'.e ≤ y'.e
+then rat.mk (x'.m) (y'.m * 2 ^ int.to_nat (y'.e - x'.e))
+else rat.mk (x'.m * 2 ^ int.to_nat (x'.e - y'.e)) (y'.m)
 
 meta def divl' (x y : 𝔽) : 𝔽 :=
 round_down prec (div_rat' x y)
