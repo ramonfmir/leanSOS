@@ -1,4 +1,6 @@
 import data.matrix.basic
+import linear_algebra.matrix
+import linear_algebra.eigenspace
 
 variables {γ : Type*} [fintype γ] [decidable_eq γ]
 variables {μ : Type*} [fintype μ] [decidable_eq μ]
@@ -21,6 +23,16 @@ lemma symmetric_sum
 : symmetric (A + B) :=
 begin
   intros i j, simp, rw [hA i j, hB i j],
+end 
+
+lemma symmetric_LDLT 
+  [comm_ring R] (L : matrix γ γ R) (h : symmetric L) (D : γ → R)
+: symmetric (Lᵀ ⬝ diagonal D ⬝ L) := 
+begin 
+  intros i j, rw ←matrix.transpose_apply (Lᵀ ⬝ diagonal D ⬝ L) j i,
+  rw [matrix.transpose_mul _ L, matrix.transpose_mul Lᵀ _],
+  rw [matrix.diagonal_transpose, matrix.transpose_transpose],
+  rw [matrix.mul_assoc],
 end 
 
 -- Properties of the dot product.

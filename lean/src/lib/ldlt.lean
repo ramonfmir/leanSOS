@@ -95,4 +95,4 @@ let L : matrix (fin n) (fin n) R := λ x y, 0 in
 decompose_def_aux ⟨0, h⟩ A L D
 
 meta def decompose (A : matrix (fin n) (fin n) R) : (matrix (fin n) (fin n) R) × (fin n → R) := do
-by { by_cases (0 < n), { exact decompose_def n h A }, {exact ⟨A, λ x, 0⟩}, }
+by { by_cases (0 < n), { exact decompose_def n h A, }, { exact ⟨A, λ x, 0⟩, }, }
