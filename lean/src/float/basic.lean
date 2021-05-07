@@ -1,6 +1,7 @@
 import data.int.basic
 import data.rat.basic
 import data.real.basic
+import float.reduce
 import tactic
 
 -- Float structure before quotiening. Basic operations.
@@ -8,6 +9,11 @@ import tactic
 structure float_raw := (m : ℤ) (e : ℤ)
 
 namespace float_raw 
+
+def reduce (x : float_raw) : float_raw :=
+let m := if x.m < 0 then int.to_nat (-x.m) else int.to_nat x.m in 
+let res := reduce_float_raw_aux ⟨m, x.e⟩ in
+{ m := if x.m < 0 then -res.1 else res.1, e := res.2 }
 
 def neg (x : float_raw) : float_raw :=
 ⟨-x.m, x.e⟩
@@ -73,6 +79,23 @@ end tactic
 -- Properties of `to_rat`.
 
 namespace to_rat 
+
+lemma reduce (x : float_raw)
+: to_rat x = to_rat (float_raw.reduce x) := 
+begin 
+  unfold float_raw.reduce,
+  by_cases (x.m < 0); split_ifs,
+  { simp [to_rat], dsimp, push_cast, rw [←neg_one_mul, mul_assoc],
+    rw ←(reduce_float_raw_aux_to_rat (-x.m).to_nat x.e),
+    have hrw := int.to_nat_of_nonneg (le_of_lt (neg_pos.2 h)),
+    replace hrw := congr_arg (coe : ℤ → ℚ) hrw, push_cast at hrw,
+    rw hrw, ring, },
+  { simp [to_rat], dsimp,
+    rw ←(reduce_float_raw_aux_to_rat (x.m).to_nat x.e),
+    have hrw := int.to_nat_of_nonneg (le_of_not_lt h),
+    replace hrw := congr_arg (coe : ℤ → ℚ) hrw, push_cast at hrw,
+    rw hrw,  }
+end 
 
 lemma neg {x y : float_raw} (h : to_rat x = to_rat y) 
 : to_rat (float_raw.neg x) = to_rat (float_raw.neg y) :=

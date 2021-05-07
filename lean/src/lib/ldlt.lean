@@ -47,16 +47,6 @@ meta def LDLT (A : matrix (fin n) (fin n) rat)
 : (matrix (fin n) (fin n) rat) × (matrix (fin n) (fin n) rat) :=
 let X := LDLT_aux 0 A in ⟨lower_triangle A, get_diagonal A⟩
 
--- Wee test
-
-def M : matrix (fin 2) (fin 2) ℚ 
-| ⟨0, _⟩ ⟨0, _⟩ := 1
-| ⟨0, _⟩ ⟨1, _⟩ := 1/2
-| ⟨1, _⟩ ⟨0, _⟩ := 1/2
-| _      _      := 1 
-
-#eval ((LDLT M).1 * (LDLT M).2 * (LDLT M).1.transpose) 1 1 -- 5/4 ==> Not good 
-
 -- New definition.
 
 variables {R : Type*} [linear_ordered_ring R] [has_div R]
@@ -106,23 +96,3 @@ decompose_def_aux ⟨0, h⟩ A L D
 
 meta def decompose (A : matrix (fin n) (fin n) R) : (matrix (fin n) (fin n) R) × (fin n → R) := do
 by { by_cases (0 < n), { exact decompose_def n h A }, {exact ⟨A, λ x, 0⟩}, }
-
-#eval let LD := decompose 2 M in (LD.1 * diagonal LD.2 * LD.1.transpose) 0 0 -- 1
-#eval let LD := decompose 2 M in (LD.1 * diagonal LD.2 * LD.1.transpose) 0 1 -- 1/2
-#eval let LD := decompose 2 M in (LD.1 * diagonal LD.2 * LD.1.transpose) 1 0 -- 1/2
-#eval let LD := decompose 2 M in (LD.1 * diagonal LD.2 * LD.1.transpose) 1 1 -- 1
-
-
--- More tests.
-@[reducible] def N := 3
-
-lemma hN : 0 < N := by { unfold N, linarith, }
-
-def H : matrix (fin N) (fin N) rat 
---| ⟨i, _⟩ ⟨j, _⟩ := float.mk 1 0
-| ⟨i, _⟩ ⟨j, _⟩ := 1
-
---set_option timeout 1000000
-
-#eval let LD := decompose N H in (LD.1 * diagonal LD.2 * LD.1.transpose) 0 0
-
