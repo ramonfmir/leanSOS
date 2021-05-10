@@ -16,6 +16,14 @@ namespace matrix
 def symmetric (M : matrix γ γ R) : Prop :=
 ∀ i j, M i j = M j i
 
+lemma symmetric_diagonal [ring R] (D : γ → R)
+: symmetric (diagonal D) :=
+begin 
+  intros i j, unfold diagonal, by_cases (i = j),
+  { split_ifs, { rw h, }, { exfalso, exact h_1 h.symm, }, },
+  { split_ifs, { exfalso, exact h h_1.symm, }, { refl, }, },
+end 
+
 lemma symmetric_sum 
   [ring R]
   {A B : matrix γ γ R}

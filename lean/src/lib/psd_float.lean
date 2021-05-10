@@ -14,7 +14,7 @@ theorem psd_of_ldlt
   (hD : 0 ≤ D)
   (hij : ∀ i j, i ≠ j → (Lᵀ ⬝ diagonal D ⬝ L) i j = A i j)
   (hii : ∀ i, 0 ≤ (A - (Lᵀ ⬝ diagonal D ⬝ L)) i i) 
-: pos_semidef A h :=
+: pos_semidef A :=
 begin 
   have hLDLTpsd := 
     pos_semidef_of_LDLT_decomposition (Lᵀ ⬝ diagonal D ⬝ L) (symmetric_LDLT L hL D) ⟨L, D, ⟨rfl, hD⟩⟩,
@@ -25,10 +25,11 @@ begin
     { rw h, simp [diagonal], },
     { have hijij := (hij i j h).symm, rw ←sub_eq_zero at hijij, 
       rw [diagonal_apply_ne h, ←hijij], simp, }, },
-  have hdApsd : pos_semidef (A - Lᵀ ⬝ diagonal D ⬝ L) sorry,
-  { sorry, },
+  have hdAsymm : symmetric (A - Lᵀ ⬝ diagonal D ⬝ L),
+  { rw hdA, exact symmetric_diagonal _, },
+  have hdApsd : pos_semidef (A - Lᵀ ⬝ diagonal D ⬝ L),
+  { rw hdA, exact pos_semidef_nonneg_diagonal hDnn, },
   have hA : A = Lᵀ ⬝ diagonal D ⬝ L + (A - Lᵀ ⬝ diagonal D ⬝ L),
   { simp, },
-  sorry,
-  --exact pos_semidef_sum 
+  rw hA, exact pos_semidef_sum hLDLTpsd hdApsd,
 end

@@ -20,17 +20,23 @@ open matrix module.End
 
 variable [linear_ordered_comm_ring R]
 
-def pos_semidef (M : matrix γ γ R) (h : symmetric M) : Prop :=
+def pos_semidef (M : matrix γ γ R)  : Prop :=
 ∀ (v : γ → R), 0 ≤ dot_product v (M.mul_vec v)
 
 theorem pos_semidef_sum 
-  (A B : matrix γ γ R) 
-  (hAsymm : symmetric A) (hBsymm : symmetric B)
-  (hApsd : pos_semidef A hAsymm) (hBpsd : pos_semidef B hBsymm)
-: pos_semidef (A + B) (symmetric_sum hAsymm hBsymm) :=
+  {A B : matrix γ γ R}
+  (hApsd : pos_semidef A) (hBpsd : pos_semidef B)
+: pos_semidef (A + B) :=
 begin
   intros v, rw [matrix.add_mul_vec, dot_product_add],
   exact add_nonneg (hApsd v) (hBpsd v),
+end 
+
+theorem pos_semidef_nonneg_diagonal {D : γ → R} (hD : 0 ≤ D) 
+: pos_semidef (diagonal D) :=
+begin 
+  intros v, rw dot_product_comm, rw dot_product_diagonal_mul_vec_eq,
+  exact dot_product_of_nonneg hD (vec_mul_self_nonneg v),
 end 
 
 -- Cholesky.
@@ -39,7 +45,7 @@ def cholesky_decomposition (M : matrix γ γ R) (h : symmetric M) : Prop :=
 ∃ L : matrix μ γ R, M = Lᵀ ⬝ L
 
 theorem pos_semidef_of_cholesky_decomposition (M : matrix γ γ R) (h : symmetric M) 
-: @cholesky_decomposition γ _ _ μ _ _ R _ M h → pos_semidef M h :=
+: @cholesky_decomposition γ _ _ μ _ _ R _ M h → pos_semidef M :=
 begin 
   rintros ⟨L, hL⟩ v, rw hL, rw [dot_product_transpose],
   exact dot_product_self_nonneg _,
@@ -52,7 +58,7 @@ def LDLT_decomposition (M : matrix γ γ R) (h : symmetric M) : Prop :=
 ∃ (L : matrix γ γ R) (D : γ → R), M = Lᵀ ⬝ (diagonal D) ⬝ L ∧ 0 ≤ D 
 
 theorem pos_semidef_of_LDLT_decomposition (M : matrix γ γ R) (h : symmetric M) 
-: LDLT_decomposition M h → pos_semidef M h :=
+: LDLT_decomposition M h → pos_semidef M :=
 begin
   rintros ⟨L, D, hLDLT, hD⟩ v, 
   rw [hLDLT, matrix.mul_assoc, dot_product_transpose], 
