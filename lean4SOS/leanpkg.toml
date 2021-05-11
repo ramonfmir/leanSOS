@@ -1,0 +1,4 @@
+[package]
+name = "SOS"
+version = "0.1"
+path = "."
