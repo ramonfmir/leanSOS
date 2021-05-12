@@ -31,7 +31,7 @@ def Mul : Dyadic → Dyadic → Dyadic := fun x y =>
 def Div (p : Nat) : Dyadic → Dyadic → Dyadic := fun x y =>
   if x.e ≤ y.e
   then { m := ((x.m * 2 ^ p) / (y.m * 2 ^ Int.toNat (y.e - x.e))), e := -p }
-  else { m := ((x.m * 2 ^ Int.toNat (x.e - y.e) * 2 ^ p) / y.m), e := -p }
+  else { m := ((x.m * 2 ^ (Int.toNat (x.e - y.e) + p)) / y.m), e := -p }
 
 -- Instances.
 
