@@ -170,6 +170,11 @@ begin
   apply quotient.sound, show to_rat _ = _, simp [to_rat],
 end
 
+@[simp] lemma eval_zero : eval 0 = 0 :=
+begin 
+  show to_rat _ = _, simp only [to_rat], dsimp, rw zero_mul,
+end 
+
 /-- Negation of floats. -/
 def neg : 𝔽 → 𝔽 :=
 quotient.lift (λ x, ⟦float_raw.neg x⟧) (λ a b h, quotient.sound $ to_rat.neg h)

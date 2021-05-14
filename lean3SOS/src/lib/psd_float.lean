@@ -51,7 +51,12 @@ def eval_mat (M : matrix (fin n) (fin n) float) : matrix (fin n) (fin n) ℚ := 
 
 def rat_norm (x : fin n → ℚ) : ℚ := ∑ i, abs (x i)
 
-def rat_normalised (x : fin n → float) : fin n → ℚ := λ i, eval (x i) / (rat_norm n (eval_vec n x))
+lemma rat_norm_nonneg (x : fin n → ℚ) : 0 ≤ rat_norm n x :=
+begin
+  apply finset.sum_nonneg, intros i hi, exact abs_nonneg (x i),
+end 
+
+def rat_normalised (x : fin n → ℚ) : fin n → ℚ := λ i, (x i) / (rat_norm n x)
 
 lemma eval_vec_eq_zero_iff (x : fin n → float) : eval_vec n x = 0 ↔ x = 0 :=
 begin 
@@ -97,14 +102,14 @@ begin
   { rw [abs_of_neg hp, abs_of_neg hq, abs_of_pos (div_pos_of_neg_of_neg hp hq), neg_div_neg_eq], },
 end 
 
-lemma normalised_norm_one (x : fin n → float) (hx : x ≠ 0) : rat_norm n (rat_normalised n x) = 1 :=
+lemma normalised_norm_one (x : fin n → ℚ) (hx : x ≠ 0) : rat_norm n (rat_normalised n x) = 1 :=
 begin 
   unfold rat_norm, unfold rat_normalised,
-  have hsum : ∑ i, abs ((x i).eval / rat_norm n (eval_vec n x)) = 
-              ∑ i, abs ((x i).eval) / abs (rat_norm n (eval_vec n x)),
+  have hsum : ∑ i, abs ((x i) / rat_norm n x) = 
+              ∑ i, abs (x i) / abs (rat_norm n x),
   { congr, ext i, rw rat.abs_div, },
-  have hex := (not_iff_not_of_iff (eval_vec_eq_zero_iff n x)).mpr hx,
-  have hrex := (not_iff_not_of_iff (rat_norm_eq_zero_iff n (eval_vec n x))).mpr hex,
+  --have hex := (not_iff_not_of_iff (eval_vec_eq_zero_iff n x)).mpr hx,
+  have hrex := (not_iff_not_of_iff (rat_norm_eq_zero_iff n x)).mpr hx,
   rw [hsum, ←finset.sum_div, abs_rat_norm, div_eq_one_iff_eq hrex],
   simp [rat_norm, eval_vec],
 end 
@@ -113,24 +118,96 @@ end
 
 -- First show that if eval M is psd then M is psd.
 
+lemma dot_product_eval (v w : fin n → float) 
+: dot_product (eval_vec n v) (eval_vec n w) = eval (dot_product v w) :=
+begin 
+  sorry,
+end 
+
+lemma mul_vec_eval (M : matrix (fin n) (fin n) float) (v : fin n → float)
+: (eval_mat n M).mul_vec (eval_vec n v) = eval_vec n (M.mul_vec v) :=
+begin 
+  sorry,
+end 
+
 lemma pos_semidef_of_eval (M : matrix (fin n) (fin n) float) (h : pos_semidef (eval_mat n M))
 : pos_semidef M := 
 begin 
-  intros v, have hv := h (eval_vec n v), sorry,
+  intros v, have hv := h (eval_vec n v), rw [mul_vec_eval, dot_product_eval] at hv,
+  show eval _ ≤ _, rw [eval_zero], exact hv,
 end 
 
+lemma float_pos_semidef_eval (M : matrix (fin n) (fin n) float) (h : pos_semidef M) 
+: ∀ (v : fin n → float), 0 ≤ dot_product (eval_vec n v) ((eval_mat n M).mul_vec (eval_vec n v)) :=
+begin 
+  intros v, rw [mul_vec_eval, dot_product_eval, ←eval_zero], exact (h v),
+end
+
 def pos_semidef_unit (M : matrix (fin n) (fin n) float) : Prop :=
-∀ (v : fin n → float), rat_norm n (eval_vec n v) = 1 → 0 ≤ dot_product v (M.mul_vec v)
+∀ (v : fin n → ℚ), rat_norm n v = 1 → 0 ≤ dot_product v ((eval_mat n M).mul_vec v)
 
 lemma pos_semidef_of_unit (M : matrix (fin n) (fin n) float) (h : pos_semidef_unit n M)
 : pos_semidef M :=
 begin 
-  intros v, sorry,
+  suffices hsuff : pos_semidef (eval_mat n M),
+  { exact pos_semidef_of_eval n M hsuff, },
+  intros v, 
+  by_cases hvz : v = 0,
+  { rw [hvz, dot_product_comm, dot_product_zero], },
+  have hv := h (rat_normalised n v) (normalised_norm_one n v hvz),
+  have hveq : dot_product (rat_normalised n v) ((eval_mat n M).mul_vec (rat_normalised n v))
+    = (dot_product v ((eval_mat n M).mul_vec v)) / (rat_norm n v) ^ 2,
+  { simp only [dot_product], rw [finset.sum_div], congr, ext i,
+    simp only [rat_normalised, mul_vec, dot_product],
+    have hsum : ∑ j, eval_mat n M i j * (v j / rat_norm n v) 
+      = (∑ j, eval_mat n M i j * v j) / rat_norm n v,
+    { rw [finset.sum_div], congr, ext j, rw [mul_div_assoc], },
+    rw hsum, rw [div_mul_div, pow_two], },
+  rw hveq at hv, clear hveq,
+  have hrvz := (not_iff_not_of_iff (rat_norm_eq_zero_iff n v)).mpr hvz,
+  have hrvpos := lt_of_le_of_ne (rat_norm_nonneg n v) (ne_comm.1 hrvz),
+  have hrv2pos := mul_pos hrvpos hrvpos,
+  rw [pow_two, le_div_iff hrv2pos, zero_mul] at hv,
+  exact hv,
 end 
 
--- lemma psd_of_nonneg_diagonally_dominant 
---   (hnonneg : ∀ i j, 0 ≤ A i j) 
---   (hdiagdom : ∀ i, A i i ≤ ∑ (j : fin n) (h : i ≠ j), A i j) 
+-- TODO: Move
+lemma finset_sum_neg {γ R : Type*} [fintype γ] [linear_ordered_ring R] {x : γ → R} 
+  (h : ∑ i, x i < 0) : ∃ i, x i < 0 :=
+begin 
+  by_contra hc, 
+  suffices hsuff : 0 ≤ ∑ i, x i, { exact (not_le_of_lt h) hsuff, },
+  apply finset.sum_nonneg, intros i hi,
+  rw not_exists at hc, replace hc := hc i,
+  exact le_of_not_lt hc,
+end 
+
+#check finset.sum_eq_sum_diff_singleton_add
+
+lemma psd_of_nonneg_diagonally_dominant 
+  (hnonneg : ∀ i j, 0 ≤ A i j) 
+  (hdiagdom : ∀ i, (∑ (j : fin n) in finset.univ \ {i}, A i j) ≤ A i i) 
+: pos_semidef A :=
+begin 
+  apply pos_semidef_of_unit n A, intros v hvunit,
+  simp only [dot_product], 
+  
+  apply finset.sum_nonneg, intros i hi,
+  by_cases hvi : v i < 0,
+  { suffices hsuff : (eval_mat n A).mul_vec v i < 0,
+    { exact le_of_lt (mul_pos_of_neg_of_neg hvi hsuff), },
+    simp only [mul_vec, dot_product], },
+  { sorry, },
+
+  
+  -- by_contra hc, 
+  -- obtain ⟨i, hci⟩ := finset_sum_neg (lt_of_not_ge hc), dsimp at hci,
+  -- suffices hsuff : 0 ≤ v i * (eval_mat n A).mul_vec v i,
+  -- { exact (not_le_of_lt hci) hsuff, },
+
+  --simp only [mul_vec, dot_product] at hci, rw finset.mul_sum at hci,
+  --obtain ⟨j, hcij⟩ := finset_sum_neg hci, dsimp at hcij,
+end
 
 
 -- With unit vectors.
