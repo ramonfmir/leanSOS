@@ -183,51 +183,50 @@ begin
   exact le_of_not_lt hc,
 end 
 
-#check finset.min'_le
-#check finset.nonempty.image_iff
-#print finset.sum_le_sum
-#check canonically_ordered_semiring.mul_le_mul_right'
-#check @mul_le_mul_of_nonneg_right
+#check finset.sum_ite_eq
 
-include hn
-
-def min_entry (v : fin n → ℚ) := 
-finset.min' (finset.image v finset.univ) ((finset.nonempty.image_iff v).2 ⟨⟨0, hn⟩, finset.mem_univ _⟩) 
-
-lemma min_entry_def (v : fin n → ℚ) 
-: ∀ i, min_entry n hn v ≤ v i :=
-begin 
-  intros i, apply finset.min'_le, rw finset.mem_image, use i, exact ⟨finset.mem_univ _, rfl⟩,
-end 
-
-#check @mul_le_mul_left
-#check real.linear_ordered_comm_ring
-
+-- Idea : https://math.stackexchange.com/questions/87528/a-practical-way-to-check-if-a-matrix-is-positive-definite
 lemma psd_of_nonneg_diagonally_dominant 
-  (hnonneg : ∀ i j, 0 ≤ A i j) 
-  (hdiagdom : ∀ i, (∑ (j : fin n) in finset.univ \ {i}, A i j) ≤ A i i) 
-: pos_semidef A :=
+  (B : matrix (fin n) (fin n) ℚ)
+  (hnonneg : ∀ i j, 0 ≤ B i j) 
+  (hdiagdom : ∀ i, (∑ j, if j = i then 0 else B i j) ≤ B i i) 
+: pos_semidef B :=
 begin 
-  apply pos_semidef_of_unit n A, intros v hvunit,
-  simp only [dot_product], 
-  have hevalnonneg : ∀ i j, 0 ≤ eval_mat n A i j,
-  { sorry, },
-  have hinner : ∀ i, (∑ j, ((eval_mat n A) i j)) * min_entry n hn v 
-    ≤ ∑ j, ((eval_mat n A) i j) * v i,
-  { intros i, rw finset.sum_mul, apply finset.sum_le_sum,
-    intros j hj, 
-    by_cases hAij : 0 = eval_mat n A i j,
-    { rw ←hAij, simp, },
-    { have hAijpos : 0 < eval_mat n A i j,
-      { exact lt_of_le_of_ne (hevalnonneg i j) hAij, },
-      rw mul_le_mul_left hAijpos,
-      exact min_entry_def n hn v i, }, },
-  simp only [mul_vec, dot_product],
-  have houter : ∑ i, v i * ∑ j, eval_mat n A i j * v j 
-    ≤ (∑ i, (v i * ∑ j, ((eval_mat n A) i j))) * min_entry n hn v,
-  { rw finset.sum_mul, apply finset.sum_le_sum, intros i hi,
-    sorry, },
-  sorry,
+  intros v,
+  let R : fin n → ℚ := λ i, ∑ k, if k = i then B i i else -(B i k),
+  let D : ℚ := ∑ i, (R i) * (v i) ^ 2,
+  let O : ℚ := ∑ i, ∑ j, (if j > i then B i j else 0) * (v i + v j) ^ 2, 
+
+  have hle : D ≤ dot_product v (B.mul_vec v),
+  { simp only [mul_vec, dot_product, D, R], 
+    apply finset.sum_le_sum, intros i hi, rw finset.mul_sum,  rw finset.sum_mul,
+    apply finset.sum_le_sum, intros j hj, split_ifs,
+    { sorry, },
+    { sorry, }, },
+
+  have heq : dot_product v (B.mul_vec v) = D + O,
+  { simp only [mul_vec, dot_product, D, O],
+    simp only [←finset.sum_add_distrib, finset.mul_sum], congr, ext i, sorry,
+    --congr, ext j,
+
+    -- rw finset.mul_sum, rw sub_mul, rw finset.sum_mul,
+    -- rw sub_eq_add_neg, rw add_assoc, rw add_comm,
+    -- have heq2 : ∑ j, ite (j > i) (B i j * (v i + v j) ^ 2) 0 + B i i * v i ^ 2
+    --   = ∑ j, ite (j = i) (B j j * v j ^ 2) (ite (j > i) (B i j * (v i + v j) ^ 2) 0),
+    -- { simp [finset.sum_ite], rw add_comm, congr' 1,
+    --   { rw finset.sum_filter, rw finset.sum_ite_eq', split_ifs, 
+    --     { refl, }, 
+    --     { exfalso, apply h, exact finset.mem_univ i, }, },
+    --   { congr' 1, ext j, simp only [finset.mem_filter], split, 
+    --     { rintros ⟨hju, hij⟩, exact ⟨⟨hju, ne.symm $ ne_of_lt hij⟩, hij⟩, }, 
+    --     { rintros ⟨⟨hju, _⟩, hij⟩, exact ⟨hju, hij⟩, }, }, },
+    -- rw add_assoc, rw heq2, clear heq2, rw ←finset.sum_neg_distrib,
+    -- rw ←finset.sum_add_distrib, congr, ext j, 
+    -- by_cases h : j = i,
+    -- { rw [if_pos h, if_pos h], rw h, simp only [pow_two], ring, },
+    -- { rw [if_neg h, if_neg h], sorry, },
+    
+     },
 end
 
 
