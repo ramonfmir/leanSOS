@@ -1,3 +1,4 @@
+import data.rat.order
 import to_mathlib.matrix float.basic float.div lib.psd 
 
 -- We have A ∈ 𝒮(𝔽)ⁿˣⁿ. 
@@ -5,7 +6,7 @@ import to_mathlib.matrix float.basic float.div lib.psd
 open matrix float
 open_locale matrix big_operators
 
-variables (n : nat) (A : matrix (fin n) (fin n) float) (h : symmetric A)
+variables (n : nat) (hn : 0 < n) (A : matrix (fin n) (fin n) float) (h : symmetric A)
 
 theorem psd_of_ldlt 
   (L : matrix (fin n) (fin n) float)
@@ -134,7 +135,7 @@ lemma pos_semidef_of_eval (M : matrix (fin n) (fin n) float) (h : pos_semidef (e
 : pos_semidef M := 
 begin 
   intros v, have hv := h (eval_vec n v), rw [mul_vec_eval, dot_product_eval] at hv,
-  show eval _ ≤ _, rw [eval_zero], exact hv,
+  show eval _ ≤ _, rw [float.eval_zero], exact hv,
 end 
 
 lemma float_pos_semidef_eval (M : matrix (fin n) (fin n) float) (h : pos_semidef M) 
@@ -182,7 +183,25 @@ begin
   exact le_of_not_lt hc,
 end 
 
-#check finset.sum_eq_sum_diff_singleton_add
+#check finset.min'_le
+#check finset.nonempty.image_iff
+#print finset.sum_le_sum
+#check canonically_ordered_semiring.mul_le_mul_right'
+#check @mul_le_mul_of_nonneg_right
+
+include hn
+
+def min_entry (v : fin n → ℚ) := 
+finset.min' (finset.image v finset.univ) ((finset.nonempty.image_iff v).2 ⟨⟨0, hn⟩, finset.mem_univ _⟩) 
+
+lemma min_entry_def (v : fin n → ℚ) 
+: ∀ i, min_entry n hn v ≤ v i :=
+begin 
+  intros i, apply finset.min'_le, rw finset.mem_image, use i, exact ⟨finset.mem_univ _, rfl⟩,
+end 
+
+#check @mul_le_mul_left
+#check real.linear_ordered_comm_ring
 
 lemma psd_of_nonneg_diagonally_dominant 
   (hnonneg : ∀ i j, 0 ≤ A i j) 
@@ -191,22 +210,24 @@ lemma psd_of_nonneg_diagonally_dominant
 begin 
   apply pos_semidef_of_unit n A, intros v hvunit,
   simp only [dot_product], 
-  
-  apply finset.sum_nonneg, intros i hi,
-  by_cases hvi : v i < 0,
-  { suffices hsuff : (eval_mat n A).mul_vec v i < 0,
-    { exact le_of_lt (mul_pos_of_neg_of_neg hvi hsuff), },
-    simp only [mul_vec, dot_product], },
+  have hevalnonneg : ∀ i j, 0 ≤ eval_mat n A i j,
   { sorry, },
-
-  
-  -- by_contra hc, 
-  -- obtain ⟨i, hci⟩ := finset_sum_neg (lt_of_not_ge hc), dsimp at hci,
-  -- suffices hsuff : 0 ≤ v i * (eval_mat n A).mul_vec v i,
-  -- { exact (not_le_of_lt hci) hsuff, },
-
-  --simp only [mul_vec, dot_product] at hci, rw finset.mul_sum at hci,
-  --obtain ⟨j, hcij⟩ := finset_sum_neg hci, dsimp at hcij,
+  have hinner : ∀ i, (∑ j, ((eval_mat n A) i j)) * min_entry n hn v 
+    ≤ ∑ j, ((eval_mat n A) i j) * v i,
+  { intros i, rw finset.sum_mul, apply finset.sum_le_sum,
+    intros j hj, 
+    by_cases hAij : 0 = eval_mat n A i j,
+    { rw ←hAij, simp, },
+    { have hAijpos : 0 < eval_mat n A i j,
+      { exact lt_of_le_of_ne (hevalnonneg i j) hAij, },
+      rw mul_le_mul_left hAijpos,
+      exact min_entry_def n hn v i, }, },
+  simp only [mul_vec, dot_product],
+  have houter : ∑ i, v i * ∑ j, eval_mat n A i j * v j 
+    ≤ (∑ i, (v i * ∑ j, ((eval_mat n A) i j))) * min_entry n hn v,
+  { rw finset.sum_mul, apply finset.sum_le_sum, intros i hi,
+    sorry, },
+  sorry,
 end
 
 
