@@ -183,11 +183,22 @@ begin
   exact le_of_not_lt hc,
 end 
 
-#check finset.sum_ite_eq
+#check finset.sum_eq_add_sum_diff_singleton
+
+lemma symmetric_decomp 
+  (B : matrix (fin n) (fin n) ℚ)
+  (hB : symmetric B)
+  (v : fin n → ℚ)
+: dot_product v (B.mul_vec v) 
+= ∑ i, (B i i) * (v i)^2 + 2 * ∑ i, ∑ j, if i < j then (B i j) * (v i) * (v j) else 0 :=
+begin
+  sorry,
+end
 
 -- Idea : https://math.stackexchange.com/questions/87528/a-practical-way-to-check-if-a-matrix-is-positive-definite
 lemma psd_of_nonneg_diagonally_dominant 
   (B : matrix (fin n) (fin n) ℚ)
+  (hB : symmetric B)
   (hnonneg : ∀ i j, 0 ≤ B i j) 
   (hdiagdom : ∀ i, (∑ j, if j = i then 0 else B i j) ≤ B i i) 
 : pos_semidef B :=
