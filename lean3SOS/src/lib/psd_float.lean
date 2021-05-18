@@ -183,16 +183,47 @@ begin
   exact le_of_not_lt hc,
 end 
 
-#check finset.sum_eq_add_sum_diff_singleton
+#check finset.sum_ite_eq
 
 lemma symmetric_decomp 
   (B : matrix (fin n) (fin n) ℚ)
   (hB : symmetric B)
   (v : fin n → ℚ)
-: dot_product v (B.mul_vec v) 
+: dot_product v (B.mul_vec v) -- vᵀ * B * v = ∑ i ∑ j, B i j * vi * vj
 = ∑ i, (B i i) * (v i)^2 + 2 * ∑ i, ∑ j, if i < j then (B i j) * (v i) * (v j) else 0 :=
 begin
-  sorry,
+  simp only [mul_vec, dot_product],
+  have h1 : ∑ i, ∑ j, (if i < j then (B i j) * (v i) * (v j) else 0)
+    = ∑ j, ∑ i, if j < i then (B i j) * (v i) * (v j) else 0,
+  { congr, ext i, congr, ext j, split_ifs, 
+    { rw hB i j, ring, },
+    { refl, } },
+  have h2 : ∑ i, ∑ j, (if i < j then (B i j) * (v i) * (v j) else 0)
+    = ∑ i, ∑ j, if j < i then (B i j) * (v i) * (v j) else 0,
+  { rw h1, rw finset.sum_comm, },
+  have h3 : 2 * ∑ i, ∑ j, (if i < j then (B i j) * (v i) * (v j) else 0)
+    = (∑ i, ∑ j, if i < j then (B i j) * (v i) * (v j) else 0)
+    + (∑ i, ∑ j, if j < i then (B i j) * (v i) * (v j) else 0),
+  { rw two_mul, congr' 1, },
+  have h4 : (∑ i, ∑ j, if i < j then (B i j) * (v i) * (v j) else 0)
+    + (∑ i, ∑ j, if j < i then (B i j) * (v i) * (v j) else 0)
+    = ∑ i, ∑ j, if i ≠ j then (B i j) * (v i) * (v j) else 0,
+  { simp only [←finset.sum_add_distrib], congr, ext i, congr, ext j,
+    by_cases hij : i < j,
+    { rw if_pos hij, rw if_pos (ne_of_lt hij), rw if_neg (not_lt.2 $ le_of_lt hij), ring, },
+    { replace hij := lt_or_eq_of_le (le_of_not_lt hij), cases hij,
+      { rw if_pos hij, rw if_pos (ne_comm.1 $ ne_of_lt hij), 
+        rw if_neg (not_lt.2 $ le_of_lt hij), ring, },
+      { rw if_neg (not_not.2 hij.symm), rw if_neg (not_lt_iff_eq_or_lt.2 $ or.inl hij),
+        rw if_neg (not_lt_iff_eq_or_lt.2 $ or.inl hij.symm), ring, }, }, },
+  have h5 : ∑ i, (B i i) * (v i)^2
+    = ∑ i, ∑ j, if i = j then (B i j) * (v i) * (v j) else 0,
+  { congr, ext i, rw finset.sum_ite_eq, rw if_pos (finset.mem_univ i), rw pow_two, ring, },
+  rw [h3, h4, h5], simp only [←finset.sum_add_distrib], congr, ext i,
+  rw finset.mul_sum, congr, ext j, 
+  by_cases hij : i = j,
+  { rw if_pos hij, rw if_neg (not_not.2 hij), ring, },
+  { rw if_pos hij, rw if_neg hij, ring, },
 end
 
 -- Idea : https://math.stackexchange.com/questions/87528/a-practical-way-to-check-if-a-matrix-is-positive-definite
