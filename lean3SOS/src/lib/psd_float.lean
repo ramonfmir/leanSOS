@@ -183,31 +183,31 @@ begin
   exact le_of_not_lt hc,
 end 
 
-#check finset.sum_ite_eq
+#check ite_mul
 
 lemma symmetric_decomp 
   (B : matrix (fin n) (fin n) ℚ)
   (hB : symmetric B)
   (v : fin n → ℚ)
 : dot_product v (B.mul_vec v) -- vᵀ * B * v = ∑ i ∑ j, B i j * vi * vj
-= ∑ i, (B i i) * (v i)^2 + 2 * ∑ i, ∑ j, if i < j then (B i j) * (v i) * (v j) else 0 :=
+= ∑ i, (B i i) * (v i) ^ 2 + 2 * ∑ i, ∑ j, (if i < j then (B i j) else 0) * (v i) * (v j) :=
 begin
   simp only [mul_vec, dot_product],
-  have h1 : ∑ i, ∑ j, (if i < j then (B i j) * (v i) * (v j) else 0)
-    = ∑ j, ∑ i, if j < i then (B i j) * (v i) * (v j) else 0,
+  have h1 : ∑ i, ∑ j, (if i < j then (B i j) else 0) * (v i) * (v j)
+    = ∑ j, ∑ i, (if j < i then (B i j) else 0) * (v i) * (v j),
   { congr, ext i, congr, ext j, split_ifs, 
     { rw hB i j, ring, },
-    { refl, } },
-  have h2 : ∑ i, ∑ j, (if i < j then (B i j) * (v i) * (v j) else 0)
-    = ∑ i, ∑ j, if j < i then (B i j) * (v i) * (v j) else 0,
+    { ring, } },
+  have h2 : ∑ i, ∑ j, (if i < j then (B i j) else 0) * (v i) * (v j)
+    = ∑ i, ∑ j, (if j < i then (B i j) else 0) * (v i) * (v j),
   { rw h1, rw finset.sum_comm, },
-  have h3 : 2 * ∑ i, ∑ j, (if i < j then (B i j) * (v i) * (v j) else 0)
-    = (∑ i, ∑ j, if i < j then (B i j) * (v i) * (v j) else 0)
-    + (∑ i, ∑ j, if j < i then (B i j) * (v i) * (v j) else 0),
+  have h3 : 2 * ∑ i, ∑ j, (if i < j then (B i j) else 0) * (v i) * (v j)
+    = (∑ i, ∑ j, (if i < j then (B i j) else 0) * (v i) * (v j))
+    + (∑ i, ∑ j, (if j < i then (B i j) else 0) * (v i) * (v j)),
   { rw two_mul, congr' 1, },
-  have h4 : (∑ i, ∑ j, if i < j then (B i j) * (v i) * (v j) else 0)
-    + (∑ i, ∑ j, if j < i then (B i j) * (v i) * (v j) else 0)
-    = ∑ i, ∑ j, if i ≠ j then (B i j) * (v i) * (v j) else 0,
+  have h4 : (∑ i, ∑ j, (if i < j then (B i j) else 0) * (v i) * (v j))
+    + (∑ i, ∑ j, (if j < i then (B i j) else 0) * (v i) * (v j))
+    = ∑ i, ∑ j, (if i ≠ j then (B i j) else 0) * (v i) * (v j),
   { simp only [←finset.sum_add_distrib], congr, ext i, congr, ext j,
     by_cases hij : i < j,
     { rw if_pos hij, rw if_pos (ne_of_lt hij), rw if_neg (not_lt.2 $ le_of_lt hij), ring, },
@@ -217,8 +217,9 @@ begin
       { rw if_neg (not_not.2 hij.symm), rw if_neg (not_lt_iff_eq_or_lt.2 $ or.inl hij),
         rw if_neg (not_lt_iff_eq_or_lt.2 $ or.inl hij.symm), ring, }, }, },
   have h5 : ∑ i, (B i i) * (v i)^2
-    = ∑ i, ∑ j, if i = j then (B i j) * (v i) * (v j) else 0,
-  { congr, ext i, rw finset.sum_ite_eq, rw if_pos (finset.mem_univ i), rw pow_two, ring, },
+    = ∑ i, ∑ j, (if i = j then (B i j) else 0) * (v i) * (v j),
+  { congr, ext i, simp only [ite_mul, zero_mul], rw finset.sum_ite_eq, 
+    rw if_pos (finset.mem_univ i), rw pow_two, ring, },
   rw [h3, h4, h5], simp only [←finset.sum_add_distrib], congr, ext i,
   rw finset.mul_sum, congr, ext j, 
   by_cases hij : i = j,
@@ -227,48 +228,69 @@ begin
 end
 
 -- Idea : https://math.stackexchange.com/questions/87528/a-practical-way-to-check-if-a-matrix-is-positive-definite
-lemma psd_of_nonneg_diagonally_dominant 
+lemma psd_of_nonneg_diagdom
   (B : matrix (fin n) (fin n) ℚ)
   (hB : symmetric B)
   (hnonneg : ∀ i j, 0 ≤ B i j) 
-  (hdiagdom : ∀ i, (∑ j, if j = i then 0 else B i j) ≤ B i i) 
+  (hdiagdom : ∀ i, (∑ j, if i ≠ j then B i j else 0) ≤ B i i) 
 : pos_semidef B :=
 begin 
   intros v,
-  let R : fin n → ℚ := λ i, ∑ k, if k = i then B i i else -(B i k),
+  let R : fin n → ℚ := λ i, B i i - ∑ j, if i ≠ j then B i j else 0,
   let D : ℚ := ∑ i, (R i) * (v i) ^ 2,
-  let O : ℚ := ∑ i, ∑ j, (if j > i then B i j else 0) * (v i + v j) ^ 2, 
+  let O : ℚ := ∑ i, ∑ j, (if i < j then B i j else 0) * (v i + v j) ^ 2, 
 
-  have hle : D ≤ dot_product v (B.mul_vec v),
-  { simp only [mul_vec, dot_product, D, R], 
-    apply finset.sum_le_sum, intros i hi, rw finset.mul_sum,  rw finset.sum_mul,
-    apply finset.sum_le_sum, intros j hj, split_ifs,
-    { sorry, },
-    { sorry, }, },
+  have hO : O = ∑ i, ∑ j, (if i < j then B i j else 0) * (v i) ^ 2
+    + 2 * ∑ i, ∑ j, (if i < j then B i j else 0) * (v i) * (v j)
+    + ∑ i, ∑ j, (if i < j then B i j else 0) * (v j) ^ 2,
+  { simp only [finset.mul_sum, ←finset.sum_add_distrib, O], congr, ext i, congr, ext j,
+    by_cases hij : i < j,
+    { simp only [if_pos hij, pow_two], ring, },
+    { simp only [if_neg hij], ring, }, },
+
+  have h1 : (∑ i, ∑ j, (if i < j then B i j else 0) * (v j) ^ 2)
+    = ∑ i, ∑ j, (if j < i then B i j else 0) * (v i) ^ 2,
+  { rw finset.sum_comm, congr, ext i, congr, ext j, split_ifs,
+    { rw (hB i j), },
+    { refl, }, },
+
+  have h2 : (∑ i, ∑ j, (if i < j then B i j else 0) * (v i) ^ 2) 
+    + ∑ i, ∑ j, (if i < j then B i j else 0) * (v j) ^ 2
+    = ∑ i, ∑ j, (if i ≠ j then B i j else 0) * (v i) ^ 2,
+  { rw h1, simp only [←finset.sum_add_distrib], congr, ext i, congr, ext j,
+    by_cases hij : i < j,
+    { rw if_pos hij, rw if_pos (ne_of_lt hij), rw if_neg (not_lt.2 $ le_of_lt hij), ring, },
+    { replace hij := lt_or_eq_of_le (le_of_not_lt hij), cases hij,
+      { rw if_pos hij, rw if_pos (ne_comm.1 $ ne_of_lt hij), 
+        rw if_neg (not_lt.2 $ le_of_lt hij), ring, },
+      { rw if_neg (not_not.2 hij.symm), rw if_neg (not_lt_iff_eq_or_lt.2 $ or.inl hij),
+        rw if_neg (not_lt_iff_eq_or_lt.2 $ or.inl hij.symm), ring, }, }, },
+
+  have hO' : O = (∑ i, ∑ j, (if i ≠ j then B i j else 0) * (v i) ^ 2)
+    + 2 * ∑ i, ∑ j, (if i < j then B i j else 0) * (v i) * (v j),
+  { rw hO, rw add_assoc, rw add_comm ((2 : ℚ) * _), rw ←add_assoc, rw h2, },
+
+  have h3 : D + (∑ i, ∑ j, (if i ≠ j then B i j else 0) * (v i) ^ 2)
+    = ∑ i, (B i i) * (v i) ^ 2,
+  { simp only [D, R, ←finset.sum_add_distrib], congr, ext i,
+    simp only [sub_mul, finset.sum_mul], ring, },
 
   have heq : dot_product v (B.mul_vec v) = D + O,
-  { simp only [mul_vec, dot_product, D, O],
-    simp only [←finset.sum_add_distrib, finset.mul_sum], congr, ext i, sorry,
-    --congr, ext j,
+  { rw hO', rw ←add_assoc, rw h3, rw symmetric_decomp n B hB v, },
+  
+  have hDnonneg : 0 ≤ D,
+  { simp only [D], apply finset.sum_nonneg, intros i hi,
+    apply mul_nonneg,
+    { simp only [R], rw sub_nonneg, exact hdiagdom i, },
+    { exact pow_two_nonneg (v i), }, },
 
-    -- rw finset.mul_sum, rw sub_mul, rw finset.sum_mul,
-    -- rw sub_eq_add_neg, rw add_assoc, rw add_comm,
-    -- have heq2 : ∑ j, ite (j > i) (B i j * (v i + v j) ^ 2) 0 + B i i * v i ^ 2
-    --   = ∑ j, ite (j = i) (B j j * v j ^ 2) (ite (j > i) (B i j * (v i + v j) ^ 2) 0),
-    -- { simp [finset.sum_ite], rw add_comm, congr' 1,
-    --   { rw finset.sum_filter, rw finset.sum_ite_eq', split_ifs, 
-    --     { refl, }, 
-    --     { exfalso, apply h, exact finset.mem_univ i, }, },
-    --   { congr' 1, ext j, simp only [finset.mem_filter], split, 
-    --     { rintros ⟨hju, hij⟩, exact ⟨⟨hju, ne.symm $ ne_of_lt hij⟩, hij⟩, }, 
-    --     { rintros ⟨⟨hju, _⟩, hij⟩, exact ⟨hju, hij⟩, }, }, },
-    -- rw add_assoc, rw heq2, clear heq2, rw ←finset.sum_neg_distrib,
-    -- rw ←finset.sum_add_distrib, congr, ext j, 
-    -- by_cases h : j = i,
-    -- { rw [if_pos h, if_pos h], rw h, simp only [pow_two], ring, },
-    -- { rw [if_neg h, if_neg h], sorry, },
-    
-     },
+  have hOnonneg : 0 ≤ O,
+  { simp only [O], apply finset.sum_nonneg, intros i hi,
+    apply finset.sum_nonneg, intros j hj, split_ifs,
+    { exact mul_nonneg (hnonneg i j) (pow_two_nonneg _), },
+    { simp, }, },
+
+  rw heq, exact add_nonneg hDnonneg hOnonneg,
 end
 
 
